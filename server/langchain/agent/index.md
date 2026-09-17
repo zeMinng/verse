@@ -29,8 +29,8 @@
 | 组件 | 角色 | LangChain 对应 |
 |------|------|----------------|
 | Model（大脑） | 理解意图、推理决策、生成回答 | ChatModel |
-| Tools（双手） | 执行具体操作：搜索、计算、读写文件 | [@tool 装饰器](/VPContent/langchain/base/tools) |
-| Memory（记事本） | 保存对话历史和中间结果 | [消息列表](/VPContent/langchain/base/messages) |
+| Tools（双手） | 执行具体操作：搜索、计算、读写文件 | [@tool 装饰器](/server/langchain/base/tools) |
+| Memory（记事本） | 保存对话历史和中间结果 | [消息列表](/server/langchain/base/messages) |
 
 ### 2. Agent 决策循环
 

@@ -2,7 +2,7 @@
 
 ## 概要
 
-[create_agent](https://python.langchain.com/api_reference/langgraph/agents/langchain.agents.create_agent.html) 把 [Tool Calling](/VPContent/langchain/base/tools) 的四阶段循环封装为一个函数调用。你只需提供模型和工具列表，Agent 自动完成"推理 → 调用工具 → 回传结果 → 再次推理"的循环，直到产出最终回复。Agent 的本质就是 ==消息驱动循环 + 自主决策==。
+[create_agent](https://python.langchain.com/api_reference/langgraph/agents/langchain.agents.create_agent.html) 把 [Tool Calling](/server/langchain/base/tools) 的四阶段循环封装为一个函数调用。你只需提供模型和工具列表，Agent 自动完成"推理 → 调用工具 → 回传结果 → 再次推理"的循环，直到产出最终回复。Agent 的本质就是 ==消息驱动循环 + 自主决策==。
 
 ## 一、基础用法
 
@@ -143,7 +143,7 @@ while True:
 ```
 :::
 
-对比 [Tools 工具](/VPContent/langchain/base/tools) 中手动编写四阶段流程，`create_agent` 接管了循环控制、工具匹配、消息追加——你只关心"有哪些工具"和"要做什么"。
+对比 [Tools 工具](/server/langchain/base/tools) 中手动编写四阶段流程，`create_agent` 接管了循环控制、工具匹配、消息追加——你只关心"有哪些工具"和"要做什么"。
 
 ### 2. 使用内置工具
 
@@ -319,7 +319,7 @@ result = agent.invoke({
 
 `create_agent` 将 Tool Calling 四阶段循环封装为一行调用——你提供模型和工具，Agent 自动完成推理、调用、回传、再推理的闭环。`system_prompt` 定义行为边界和工具策略，`response_format` 约束输出格式，`stream()` 提供实时进度反馈。
 
-Agent 是 LangChain 工作流的最终形态：Prompt 定义意图 → Tools 赋予行动力 → Structured Output 约束格式 → Agent 封装自主决策循环。返回[概念总览](/VPContent/langchain/)可回顾完整架构。
+Agent 是 LangChain 工作流的最终形态：Prompt 定义意图 → Tools 赋予行动力 → Structured Output 约束格式 → Agent 封装自主决策循环。返回[概念总览](/server/langchain/)可回顾完整架构。
 
 ::: info 📖 相关资源
 - [create_agent API 参考](https://python.langchain.com/api_reference/langgraph/agents/langchain.agents.create_agent.html) — 函数签名与全部参数

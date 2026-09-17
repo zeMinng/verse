@@ -1,8 +1,8 @@
-import java from './java'
-import python from './python'
-import rust from './rust'
-import toolchain from './toolchain'
-import langchain from './langchain'
+import java from './java.ts'
+import python from './python.ts'
+import rust from './rust.ts'
+import toolchain from './toolchain.ts'
+import langchain from './langchain.ts'
 
 export default [
   java,

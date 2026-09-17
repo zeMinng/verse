@@ -251,7 +251,7 @@ messages = prompt.invoke({"input": "你好"})
 
 ## 小结
 
-提示词模板解决的本质问题是**消息结构的复用**——骨架和内容分离，同一套 prompt 适配不同输入、不同对话历史、不同全局配置。在 LangChain 工作流中，`prompt | model | parser` 是最基础的组装单元：Tools 在此之上给模型绑定函数调用能力，Agent 在此基础上加入自主决策循环。返回[概念总览](/VPContent/langchain/)可回顾整体架构。
+提示词模板解决的本质问题是**消息结构的复用**——骨架和内容分离，同一套 prompt 适配不同输入、不同对话历史、不同全局配置。在 LangChain 工作流中，`prompt | model | parser` 是最基础的组装单元：Tools 在此之上给模型绑定函数调用能力，Agent 在此基础上加入自主决策循环。返回[概念总览](/server/langchain/)可回顾整体架构。
 
 ::: info 📖 相关资源
 - [ChatPromptTemplate API](https://python.langchain.com/api_reference/core/prompts/langchain_core.prompts.chat.ChatPromptTemplate.html) — 完整 API 参考

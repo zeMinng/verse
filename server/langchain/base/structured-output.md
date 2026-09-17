@@ -231,7 +231,7 @@ result = structured.invoke("小王，25岁，前端工程师")
 
 `with_structured_output()` 把 Schema 传给模型底层 API，让输出从自由文本变为 ==结构化对象==。四种 Schema 方式中，Pydantic BaseModel 是生产首选——类型安全、校验完备、约束丰富。TypedDict 轻量但无校验，JSON Schema 适合跨语言复用，@dataclass 是语法替代。
 
-结构化输出与 [Tools 工具](/VPContent/langchain/base/tools) 是 Agent 的两大核心能力：`with_structured_output()` 约束输出格式，`bind_tools()` 赋予外部行动力。两者通过 LCEL 组合——`prompt | model.with_structured_output(...)` 或 `prompt | model.bind_tools(...)`——覆盖了 LLM 应用的绝大多数场景。
+结构化输出与 [Tools 工具](/server/langchain/base/tools) 是 Agent 的两大核心能力：`with_structured_output()` 约束输出格式，`bind_tools()` 赋予外部行动力。两者通过 LCEL 组合——`prompt | model.with_structured_output(...)` 或 `prompt | model.bind_tools(...)`——覆盖了 LLM 应用的绝大多数场景。
 
 ::: info 📖 相关资源
 - [LangChain Structured Output 指南](https://python.langchain.com/docs/how_to/structured_output/) — 官方结构化输出完整教程

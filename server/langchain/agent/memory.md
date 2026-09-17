@@ -260,7 +260,7 @@ Store 不对数据做语义理解——它只是存和取。数据的结构化�
 - **trim_messages + SummarizationMiddleware** 构成记忆治理层——checkpointer 保存完整状态，治理策略控制传给模型的窗口
 - **Store API** 是长期记忆的载体——跨 thread_id 共享，适合用户偏好、事实积累等需要跨会话保留的信息
 
-从 checkpointer 到 Store，记忆从"会话内状态快照"扩展到"跨会话知识沉淀"。掌握了这条链路，后续 [中间件](/VPContent/langchain/agent/middleware) 中的 SummarizationMiddleware 和 HumanInTheLoopMiddleware 就有了坚实的理解基础。
+从 checkpointer 到 Store，记忆从"会话内状态快照"扩展到"跨会话知识沉淀"。掌握了这条链路，后续 [中间件](/server/langchain/agent/middleware) 中的 SummarizationMiddleware 和 HumanInTheLoopMiddleware 就有了坚实的理解基础。
 
 :::info 📖 相关资源
 - [LangGraph Persistence 概念文档](https://langchain-ai.github.io/langgraph/concepts/persistence/) — checkpointer 与 Store 的核心架构

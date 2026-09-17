@@ -216,7 +216,7 @@ response = model.invoke([HumanMessage(content="你好，今天过得怎么样？
 
 ## 小结
 
-工具调用的本质是 ==消息驱动的循环==：模型输出 ToolCall → 代码执行 → ToolMessage 回传 → 模型再次推理。这个循环往上加一层"判断是否需要继续调用"的控制流，就是 Agent；往模型输出上加一层结构化约束（Pydantic / JSON Schema），就是[结构化输出](/VPContent/langchain/base/structured-output)。两者结合——`prompt | model.bind_tools(...) | ...`——是 LangChain 最核心的组装模式。
+工具调用的本质是 ==消息驱动的循环==：模型输出 ToolCall → 代码执行 → ToolMessage 回传 → 模型再次推理。这个循环往上加一层"判断是否需要继续调用"的控制流，就是 Agent；往模型输出上加一层结构化约束（Pydantic / JSON Schema），就是[结构化输出](/server/langchain/base/structured-output)。两者结合——`prompt | model.bind_tools(...) | ...`——是 LangChain 最核心的组装模式。
 
 ::: info 📖 相关资源
 - [Tool Calling 概念文档](https://python.langchain.com/docs/concepts/tool_calling/) — 官方概念说明

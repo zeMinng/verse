@@ -521,7 +521,7 @@ my-project/
 
 **.gitignore 推荐条目**：
 
-```gitignore
+```bash
 # Claude Code
 .claude/settings.local.json
 .claude/agent memory/
