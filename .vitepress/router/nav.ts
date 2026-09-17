@@ -1,8 +1,8 @@
 const nav: NavItem[] = [
   { text: '开始', link: '/start' },
-  { text: '前端', link: '/frontend/vue3/basic/', activeMatch: '/frontend/' },
-  { text: '后端', link: '/backend/', activeMatch: '/backend/' },
-  { text: '实践录', link: '/goodTool' },
+  { text: '前端', link: '/web/vue3/basic/', activeMatch: '/web/' },
+  { text: '服务', link: '/server/', activeMatch: '/server/' },
+  { text: '手记', link: '/goodTool' },
   {
     text: '关于',
     items: [

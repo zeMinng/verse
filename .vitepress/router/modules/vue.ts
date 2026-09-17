@@ -1,7 +1,7 @@
 const vue: SidebarItem = {
   text: 'Vue',
   collapsed: false,
-  base: '/frontend/vue3',
+  base: '/web/vue3',
   items: [
     {
       text: '核心概念',

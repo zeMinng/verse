@@ -1,7 +1,7 @@
 const uniapp: SidebarItem = {
   text: 'Uniapp',
   collapsed: false,
-  base: '/frontend/uniapp',
+  base: '/web/uniapp',
   items: [
     {
       text: '核心概念',

@@ -167,7 +167,7 @@ yarn npm audit
 | **锁定文件提交到 Git** | ✅ 几乎所有项目都该这样做 |
 | **锁定文件不进 Git** | ❌ 只在库开发模板中考虑（但也不推荐） |
 
-```gitignore
+```bash
 # .gitignore — 确保锁定文件被追踪
 # ❌ 不要添加：
 # package-lock.json

@@ -1,12 +1,12 @@
 import nav from './nav.ts'
-import uniapp from './modules/uniapp'
-import vue from './modules/vue'
-import react from './modules/react'
-import fundamentals from './modules/fundamentals'
-import cli from './modules/cli'
-import solutions from './modules/solutions'
-import performance from './modules/performance'
-import webApi from './modules/web-api'
+import uniapp from './modules/uniapp.ts'
+import vue from './modules/vue.ts'
+import react from './modules/react.ts'
+import fundamentals from './modules/fundamentals.ts'
+import cli from './modules/cli.ts'
+import solutions from './modules/solutions.ts'
+import performance from './modules/performance.ts'
+import webApi from './modules/web-api.ts'
 
 const sidebarTechnology = (): SidebarItem[] => {
   return [
@@ -42,7 +42,7 @@ const sidebarTechnology = (): SidebarItem[] => {
 // }
 
 const sidebar = {
-  '/frontend/': sidebarTechnology(),
+  '/web/': sidebarTechnology(),
 }
 
 export { nav, sidebar }

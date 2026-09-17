@@ -1,7 +1,7 @@
 const performance: SidebarItem = {
   text: 'Web 性能优化',
   collapsed: false,
-  base: '/frontend/performance',
+  base: '/web/performance',
   items: [
     { text: '性能概览', link: '/' },
     { text: 'Core Web Vitals', link: '/core-web-vitals' },

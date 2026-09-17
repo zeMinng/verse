@@ -1,6 +1,6 @@
 import { defineConfig } from "vitepress"
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config"
-import { sidebar, nav } from './router'
+import { sidebar, nav } from './router/index.ts'
 
 const AUTHOR_NAME = 'zeMinng'
 

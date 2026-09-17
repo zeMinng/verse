@@ -1,7 +1,7 @@
 const webApi: SidebarItem = {
   text: 'Web API & 浏览器能力',
   collapsed: false,
-  base: '/frontend/web-api',
+  base: '/web/web-api',
   items: [
     { text: '概览', link: '/' },
     { text: 'Intersection Observer', link: '/intersection-observer' },

@@ -1,7 +1,7 @@
 const fundamentals: SidebarItem = {
   text: '语言基础',
   collapsed: false,
-  base: '/frontend/fundamentals',
+  base: '/web/fundamentals',
   items: [
     {
       text: 'TypeScript',

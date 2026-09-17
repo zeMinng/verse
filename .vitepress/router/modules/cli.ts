@@ -1,7 +1,7 @@
 const cli: SidebarItem = {
   text: '工程化',
   collapsed: false,
-  base: '/frontend/cli',
+  base: '/web/cli',
   items: [
     {
       text: 'Git',

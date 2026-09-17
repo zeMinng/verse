@@ -1,7 +1,7 @@
 const solutions: SidebarItem = {
   text: '通用解决方案',
   collapsed: false,
-  base: '/frontend/solutions',
+  base: '/web/solutions',
   items: [
     { text: 'SHA256', link: '/sha256' },
     { text: 'ThreeJs', link: '/three' },

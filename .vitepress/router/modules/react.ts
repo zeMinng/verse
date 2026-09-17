@@ -1,7 +1,7 @@
 const React: SidebarItem = {
   text: 'React',
   collapsed: false,
-  base: '/frontend/react',
+  base: '/web/react',
   items: [
     {
       text: '核心概念',
