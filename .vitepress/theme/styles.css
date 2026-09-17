@@ -1,0 +1,17 @@
+@import "@voidzero-dev/vitepress-theme/src/styles/index.css";
+
+@source "./**/*.vue";
+
+/* Project specific branding colors */
+:root[data-variant="vite"] {
+  --color-brand: #6b1eb9;
+}
+
+:root.dark:not([data-theme])[data-variant="vite"],
+:root[data-theme="dark"][data-variant="vite"] {
+  --color-brand: var(--color-vite);
+}
+
+:root[data-theme="light"][data-variant="vite"] {
+  --color-brand: #6b1eb9;
+}

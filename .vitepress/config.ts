@@ -1,26 +1,86 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress"
+import { extendConfig } from "@voidzero-dev/vitepress-theme/config"
 
-export default defineConfig({
-  title: "ceshi",
-  description: "A VitePress Site",
+const AUTHOR_NAME = 'zeMinng'
+
+const config = defineConfig({
+  title: 'zeMinng',
+  description: 'Personal technical notes, separated by chapters. | 个人技术笔记，按章节分类',
+  lang: 'zh-CN',
+  cleanUrls: true,
+  lastUpdated: true,
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
+    ['link', { rel: 'preconnect', href: 'https://2HEGWEY7SW-dsn.algolia.net' }],
+  ],
+  markdown: {
+    lineNumbers: true,
+  },
   themeConfig: {
-    // nav: [
-    //   { text: 'Home', link: '/' },
-    //   { text: 'Examples', link: '/markdown-examples' }
-    // ],
-
-    // sidebar: [
-    //   {
-    //     text: 'Examples',
-    //     items: [
-    //       { text: 'Markdown Examples', link: '/markdown-examples' },
-    //       { text: 'Runtime API Examples', link: '/api-examples' }
-    //     ]
-    //   }
-    // ],
-
+    variant: "voidzero",
+    siteTitle: 'zeMinng',
+    logo: { light: '/logo.svg', dark: '/logoFFF.svg', width: 24, height: 24 },
+    outline: {
+      level: [2, 3],
+    },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
-    ]
-  }
+      { icon: 'github', link: `https://github.com/${AUTHOR_NAME}` },
+      { icon: 'x', link: 'https://twitter.com/xiaoxiaoemil' }
+    ],
+    editLink: {
+      pattern: 'https://github.com/zeMinng/verse/tree/main/WebPedia/:path',
+      text: '在github上编辑此页面',
+    },
+    search: {
+      provider: 'local',
+    },
+    nav: [
+      { text: "Home", link: "/" },
+    ],
+    footer: {
+      message: 'CC BY-NC-SA 4.0 协议',
+      copyright: `版权所有 © 2023-${new Date().getFullYear()} ${AUTHOR_NAME} | 保留所有权利`,
+      nav: [
+        {
+          title: 'projects',
+          items: [
+            { text: 'create-vite-uniapp', link: 'https://github.com/zeMinng/create-vite-uniapp' },
+            { text: 'quick-kit', link: 'https://github.com/zeMinng/quick-kit' },
+            { text: 'drag-form', link: 'https://github.com/zeMinng/drag-form' },
+            { text: 'apple-workout-analytics', link: 'https://github.com/zeMinng/apple-workout-analytics' },
+            { text: 'health-stream-parser', link: 'https://github.com/zeMinng/health-stream-parser' },
+            { text: 'imager', link: 'https://github.com/zeMinng/imager' },
+            { text: 'monkey-unit', link: 'https://github.com/zeMinng/monkey-unit' },
+            { text: 'vitepress-theme-blog', link: 'https://github.com/zeMinng/vitepress-theme-blog' },
+          ],
+        },
+        {
+          title: 'Doc Links',
+          items: [
+            { text: 'vue', link: 'https://vuejs.org/' },
+            { text: 'vite', link: 'https://vitejs.dev/' },
+            { text: 'pinia', link: 'https://pinia.vuejs.org/' },
+            { text: 'vuex', link: 'https://vuex.vuejs.org/' },
+            { text: 'vue-router', link: 'https://router.vuejs.org/' },
+            { text: 'uniapp', link: 'https://uniapp.dcloud.net.cn/' },
+            { text: 'eslint', link: 'https://eslint.org/' },
+            { text: 'vitePress', link: 'https://vitepress.dev/' },
+          ],
+        },
+      ],
+      social: [
+        { icon: 'github', link: `https://github.com/${AUTHOR_NAME}` },
+        { icon: 'discord', link: 'https://discord.com/channels/@me' },
+        { icon: 'x', link: 'https://x.com/xiaoxiaoemil' },
+      ], 
+    }
+  },
+  vite: {
+    server: {
+      host: true,
+      open: '/',
+    },
+  },
 })
+
+export default extendConfig(config)
