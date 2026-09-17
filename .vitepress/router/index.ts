@@ -10,12 +10,6 @@ import webApi from './modules/web-api'
 
 const sidebarTechnology = (): SidebarItem[] => {
   return [
-    {
-      text: '开始',
-      collapsed: false,
-      base: '/frontend/start',
-      items: [{ text: '简介', link: '/' }],
-    },
     vue,
     uniapp,
     react,

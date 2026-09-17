@@ -47,7 +47,7 @@ const installTabs = [
           Personal technical notes, separated by chapters. <br /> 记录代码片段、技术实践与零散思考。
         </p>
         <div class="flex items-center gap-5 mt-8">
-          <a href="/frontend/start" class="button button--primary inline-block w-fit">
+          <a href="/start" class="button button--primary inline-block w-fit">
             Get Started
           </a>
           <a
