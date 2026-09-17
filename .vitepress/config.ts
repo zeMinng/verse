@@ -1,5 +1,6 @@
 import { defineConfig } from "vitepress"
 import { extendConfig } from "@voidzero-dev/vitepress-theme/config"
+import { sidebar, nav } from './router'
 
 const AUTHOR_NAME = 'zeMinng'
 
@@ -34,9 +35,8 @@ const config = defineConfig({
     search: {
       provider: 'local',
     },
-    nav: [
-      { text: "Home", link: "/" },
-    ],
+    nav,
+    sidebar,
     footer: {
       message: 'CC BY-NC-SA 4.0 协议',
       copyright: `版权所有 © 2023-${new Date().getFullYear()} ${AUTHOR_NAME} | 保留所有权利`,
