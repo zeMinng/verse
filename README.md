@@ -12,7 +12,7 @@
 
 ## ✨ 为什么是 verse？
 
-`verse`（小棱镜）是一个用 VitePress 构建的个人技术笔记文档站，记录前端、服务端开发中的踩坑经验与代码片段。本地全文检索、零成本静态部署，为自己沉淀一份随查随用的技术手册。
+`verse` 是一个用 VitePress 构建的个人技术笔记文档站，记录前端、服务端开发中的踩坑经验与代码片段。本地全文检索、零成本静态部署，为自己沉淀一份随查随用的技术手册。
 
 ## ✨ 特性亮点
 
@@ -58,6 +58,8 @@ npm run preview
 3. 提交更改 (`git commit -m '添加一些 AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
+
+#
 
 <div align="center">
   <p>
