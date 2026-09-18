@@ -74,15 +74,17 @@ const installTabs = [
       <div
         class="relative px-10 pb-10 md:pt-10 h-full flex flex-col justify-center overflow-clip"
       >
-        <RiveAnimation
-          :desktop-src="viteAnimation"
-          :mobile-src="viteAnimation"
-          :desktop-width="641"
-          :desktop-height="629"
-          :mobile-width="641"
-          :mobile-height="629"
-          canvas-class="w-full"
-        />
+        <ClientOnly>
+          <RiveAnimation
+            :desktop-src="viteAnimation"
+            :mobile-src="viteAnimation"
+            :desktop-width="641"
+            :desktop-height="629"
+            :mobile-width="641"
+            :mobile-height="629"
+            canvas-class="w-full"
+          />
+        </ClientOnly>
       </div>
     </div>
   </div>

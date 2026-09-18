@@ -9,7 +9,6 @@ import './styles.css'
 export default {
   extends: BaseTheme,
   enhanceApp(ctx) {
-		VoidZeroTheme.enhanceApp(ctx),
     ctx.app.provide(themeContextKey, {
       logoDark,
       logoLight,
@@ -17,5 +16,6 @@ export default {
 			footerBg,
       monoIcon,
     })
+    // VoidZeroTheme.enhanceApp(ctx)
   },
 } satisfies Theme
