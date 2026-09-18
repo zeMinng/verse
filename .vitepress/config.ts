@@ -44,14 +44,14 @@ const config = defineConfig({
         {
           title: 'projects',
           items: [
+            { text: 'runpkg', link: 'https://github.com/zeMinng/runpkg' },
             { text: 'create-vite-uniapp', link: 'https://github.com/zeMinng/create-vite-uniapp' },
-            { text: 'quick-kit', link: 'https://github.com/zeMinng/quick-kit' },
             { text: 'drag-form', link: 'https://github.com/zeMinng/drag-form' },
+            { text: 'quick-kit', link: 'https://github.com/zeMinng/quick-kit' },
             { text: 'apple-workout-analytics', link: 'https://github.com/zeMinng/apple-workout-analytics' },
             { text: 'health-stream-parser', link: 'https://github.com/zeMinng/health-stream-parser' },
             { text: 'imager', link: 'https://github.com/zeMinng/imager' },
             { text: 'monkey-unit', link: 'https://github.com/zeMinng/monkey-unit' },
-            { text: 'vitepress-theme-blog', link: 'https://github.com/zeMinng/vitepress-theme-blog' },
           ],
         },
         {
