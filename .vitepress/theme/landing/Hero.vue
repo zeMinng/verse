@@ -1,7 +1,7 @@
 <script setup>
+import VerseHero from '../components/VerseHero.vue'
 import CodeGroup from '@components/shared/CodeGroup.vue'
 import RiveAnimation from '@components/shared/RiveAnimation.vue'
-
 import viteAnimation from '@assets/vite/animations/641_x_629_vite_masthead.riv'
 
 if (typeof document !== 'undefined') {
@@ -75,7 +75,7 @@ const installTabs = [
         class="relative px-10 pb-10 md:pt-10 h-full flex flex-col justify-center overflow-clip"
       >
         <ClientOnly>
-          <RiveAnimation
+          <!-- <RiveAnimation
             :desktop-src="viteAnimation"
             :mobile-src="viteAnimation"
             :desktop-width="641"
@@ -83,7 +83,8 @@ const installTabs = [
             :mobile-width="641"
             :mobile-height="629"
             canvas-class="w-full"
-          />
+          /> -->
+          <VerseHero />
         </ClientOnly>
       </div>
     </div>
