@@ -5,7 +5,7 @@
 个人技术笔记文档站 · 按章节归档，随时检索，沉淀复用
 
 [![VitePress](https://img.shields.io/badge/VitePress-2.x-6366f1?style=flat-square&logo=vite&logoColor=white)](https://vitepress.dev)
-[![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-6366f1?style=flat-square)](./LICENSE)
+[![License](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-6366f1?style=flat-square)](https://github.com/zeMinng/verse?tab=License-1-ov-file)
 [![GitHub Stars](https://img.shields.io/github/stars/zeMinng/verse?style=flat-square&color=6366f1)](https://github.com/zeMinng/verse/stargazers)
 
 </div>
