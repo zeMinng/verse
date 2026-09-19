@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  computed,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -16,15 +15,30 @@ interface Particle {
   opacity: number
   x: number
   y: number
-  baseX: number
-  baseY: number
 }
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
+interface NodePoint {
+  name: string
+  index: string
+  x: number
+  y: number
+  mobileX: number
+  mobileY: number
+}
+
 const containerRef = ref<HTMLElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
 const isHovering = ref(false)
-const isVisible = ref(false)
+const isVisible = ref(true)
+
+let ctx: CanvasRenderingContext2D | null = null
+let observer: IntersectionObserver | null = null
+let frameId = 0
+
+let width = 0
+let height = 0
+let dpr = 1
 
 const mouse = {
   x: 0,
@@ -32,24 +46,54 @@ const mouse = {
   active: false,
 }
 
-let ctx: CanvasRenderingContext2D | null = null
-let animationFrame = 0
-let observer: IntersectionObserver | null = null
-
-let width = 0
-let height = 0
-let dpr = 1
-
 const particles: Particle[] = []
 
-const PARTICLE_COUNT = 42
-const CONNECTION_DISTANCE = 145
+const nodes: NodePoint[] = [
+  {
+    name: 'Frontend',
+    index: '01',
+    x: 0.17,
+    y: 0.40,
+    mobileX: 0.10,
+    mobileY: 0.36,
+  },
+  {
+    name: 'AI',
+    index: '02',
+    x: 0.78,
+    y: 0.25,
+    mobileX: 0.78,
+    mobileY: 0.28,
+  },
+  {
+    name: 'Rust',
+    index: '03',
+    x: 0.22,
+    y: 0.77,
+    mobileX: 0.10,
+    mobileY: 0.73,
+  },
+  {
+    name: 'Backend',
+    index: '04',
+    x: 0.82,
+    y: 0.69,
+    mobileX: 0.76,
+    mobileY: 0.73,
+  },
+]
 
-const isDark = computed(() => {
-  if (typeof document === 'undefined') return true
+const PARTICLE_COUNT = 54
+const MAX_CONNECTION_DISTANCE = 150
+const NODE_CONNECTION_DISTANCE = 260
+
+function isDarkMode() {
+  if (typeof document === 'undefined') {
+    return true
+  }
 
   return document.documentElement.classList.contains('dark')
-})
+}
 
 function random(min: number, max: number) {
   return Math.random() * (max - min) + min
@@ -58,42 +102,38 @@ function random(min: number, max: number) {
 function createParticles() {
   particles.length = 0
 
-  const radius = Math.min(width, height) * 0.27
+  const baseRadius = Math.min(width, height) * 0.30
 
   for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const angle =
-      (Math.PI * 2 * i) / PARTICLE_COUNT +
-      random(-0.08, 0.08)
-
-    const particleRadius =
-      radius + random(-45, 45)
-
     particles.push({
-      angle,
-      radius: particleRadius,
+      angle:
+        (Math.PI * 2 * i) / PARTICLE_COUNT +
+        random(-0.12, 0.12),
 
-      speed: random(0.00015, 0.00045),
+      radius:
+        baseRadius + random(-80, 80),
 
-      size: random(1.2, 2.8),
+      speed: random(0.00012, 0.00038),
+
+      size: random(0.8, 2.3),
 
       phase: random(0, Math.PI * 2),
 
-      opacity: random(0.25, 0.8),
+      opacity: random(0.18, 0.72),
 
       x: 0,
       y: 0,
-
-      baseX: 0,
-      baseY: 0,
     })
   }
 }
 
 function resizeCanvas() {
-  const canvas = canvasRef.value
   const container = containerRef.value
+  const canvas = canvasRef.value
 
-  if (!canvas || !container) return
+  if (!container || !canvas) {
+    return
+  }
 
   const rect = container.getBoundingClientRect()
 
@@ -102,26 +142,41 @@ function resizeCanvas() {
 
   dpr = Math.min(window.devicePixelRatio || 1, 2)
 
-  canvas.width = width * dpr
-  canvas.height = height * dpr
+  canvas.width = Math.round(width * dpr)
+  canvas.height = Math.round(height * dpr)
 
   canvas.style.width = `${width}px`
   canvas.style.height = `${height}px`
 
   ctx = canvas.getContext('2d')
 
-  if (!ctx) return
+  if (!ctx) {
+    return
+  }
 
-  ctx.setTransform(
-    dpr,
-    0,
-    0,
-    dpr,
-    0,
-    0,
-  )
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   createParticles()
+}
+
+function getNodePosition(
+  node: NodePoint,
+) {
+  const mobile =
+    width < 768
+
+  const x = mobile
+    ? node.mobileX
+    : node.x
+
+  const y = mobile
+    ? node.mobileY
+    : node.y
+
+  return {
+    x: x * width,
+    y: y * height,
+  }
 }
 
 function updateParticles(time: number) {
@@ -133,7 +188,8 @@ function updateParticles(time: number) {
 
     const breathing =
       Math.sin(
-        time * 0.0008 + particle.phase,
+        time * 0.00075 +
+        particle.phase,
       ) * 8
 
     const radius =
@@ -141,83 +197,98 @@ function updateParticles(time: number) {
 
     let x =
       centerX +
-      Math.cos(particle.angle) * radius
+      Math.cos(particle.angle) *
+      radius
 
     let y =
       centerY +
-      Math.sin(particle.angle) * radius
+      Math.sin(particle.angle) *
+      radius
 
     /*
-     * 鼠标排斥
+     * 鼠标产生局部排斥
      */
     if (mouse.active) {
       const dx = x - mouse.x
       const dy = y - mouse.y
 
-      const distance = Math.sqrt(
-        dx * dx + dy * dy,
-      )
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy,
+        )
 
-      const influence = Math.max(
-        0,
-        1 - distance / 180,
-      )
+      if (
+        distance > 0 &&
+        distance < 180
+      ) {
+        const strength =
+          Math.pow(
+            1 - distance / 180,
+            2,
+          ) * 46
 
-      if (influence > 0) {
-        const force =
-          influence * influence * 42
+        x +=
+          (dx / distance) *
+          strength
 
-        if (distance > 0) {
-          x += (dx / distance) * force
-          y += (dy / distance) * force
-        }
+        y +=
+          (dy / distance) *
+          strength
       }
     }
 
     /*
-     * 鼠标造成轻微视差
+     * 整体轻微视差
      */
-    const parallaxX = mouse.active
-      ? (mouse.x - centerX) * 0.025
-      : 0
+    if (mouse.active) {
+      const offsetX =
+        (mouse.x - centerX) *
+        0.018
 
-    const parallaxY = mouse.active
-      ? (mouse.y - centerY) * 0.025
-      : 0
+      const offsetY =
+        (mouse.y - centerY) *
+        0.018
 
-    particle.baseX = x
-    particle.baseY = y
+      x += offsetX
+      y += offsetY
+    }
 
-    particle.x = x + parallaxX
-    particle.y = y + parallaxY
+    particle.x = x
+    particle.y = y
   }
 }
 
-function drawGlow(
-  x: number,
-  y: number,
-  radius: number,
-) {
-  if (!ctx) return
+function drawBackgroundGlow() {
+  if (!ctx) {
+    return
+  }
 
-  const gradient = ctx.createRadialGradient(
-    x,
-    y,
-    0,
-    x,
-    y,
-    radius,
-  )
+  const centerX = width / 2
+  const centerY = height / 2
 
-  if (isDark.value) {
+  const gradient =
+    ctx.createRadialGradient(
+      centerX,
+      centerY,
+      0,
+      centerX,
+      centerY,
+      Math.min(
+        width,
+        height,
+      ) * 0.48,
+    )
+
+  if (isDarkMode()) {
     gradient.addColorStop(
       0,
-      'rgba(120, 120, 255, 0.13)',
+      'rgba(120, 120, 255, 0.09)',
     )
 
     gradient.addColorStop(
-      0.45,
-      'rgba(120, 120, 255, 0.045)',
+      0.4,
+      'rgba(120, 120, 255, 0.035)',
     )
 
     gradient.addColorStop(
@@ -227,81 +298,313 @@ function drawGlow(
   } else {
     gradient.addColorStop(
       0,
-      'rgba(80, 80, 220, 0.08)',
+      'rgba(70, 70, 190, 0.07)',
     )
 
     gradient.addColorStop(
-      0.45,
-      'rgba(80, 80, 220, 0.025)',
+      0.4,
+      'rgba(70, 70, 190, 0.022)',
     )
 
     gradient.addColorStop(
       1,
-      'rgba(80, 80, 220, 0)',
+      'rgba(70, 70, 190, 0)',
     )
   }
-
-  ctx.fillStyle = gradient
 
   ctx.beginPath()
 
   ctx.arc(
-    x,
-    y,
+    centerX,
+    centerY,
+    Math.min(
+      width,
+      height,
+    ) * 0.48,
+    0,
+    Math.PI * 2,
+  )
+
+  ctx.fillStyle = gradient
+
+  ctx.fill()
+}
+
+function drawOrbit(
+  radius: number,
+  opacity: number,
+  rotation = 0,
+) {
+  if (!ctx) {
+    return
+  }
+
+  const centerX = width / 2
+  const centerY = height / 2
+
+  ctx.save()
+
+  ctx.translate(
+    centerX,
+    centerY,
+  )
+
+  ctx.rotate(rotation)
+
+  ctx.scale(1, 0.52)
+
+  ctx.beginPath()
+
+  ctx.arc(
+    0,
+    0,
     radius,
     0,
     Math.PI * 2,
   )
 
-  ctx.fill()
+  ctx.strokeStyle =
+    isDarkMode()
+      ? `rgba(150, 150, 255, ${opacity})`
+      : `rgba(80, 80, 170, ${opacity})`
+
+  ctx.lineWidth = 0.65
+
+  ctx.stroke()
+
+  ctx.restore()
 }
 
-function drawConnections() {
-  if (!ctx) return
+function drawNodeConnections() {
+  if (!ctx) {
+    return
+  }
 
-  const lineColor = isDark.value
-    ? '120, 120, 255'
-    : '80, 80, 180'
+  const color =
+    isDarkMode()
+      ? '150, 150, 255'
+      : '90, 90, 170'
 
-  for (let i = 0; i < particles.length; i++) {
+  const positions =
+    nodes.map(
+      getNodePosition,
+    )
+
+  /*
+   * 节点 → 中心
+   */
+  const center = {
+    x: width / 2,
+    y: height / 2,
+  }
+
+  for (
+    let i = 0;
+    i < positions.length;
+    i++
+  ) {
+    const point = positions[i]
+
+    const dx =
+      point.x - center.x
+
+    const dy =
+      point.y - center.y
+
+    const distance =
+      Math.sqrt(
+        dx * dx +
+        dy * dy,
+      )
+
+    let opacity =
+      0.075
+
+    if (isHovering.value) {
+      opacity = 0.14
+    }
+
+    const gradient =
+      ctx.createLinearGradient(
+        center.x,
+        center.y,
+        point.x,
+        point.y,
+      )
+
+    gradient.addColorStop(
+      0,
+      `rgba(${color}, ${opacity})`,
+    )
+
+    gradient.addColorStop(
+      1,
+      `rgba(${color}, 0)`,
+    )
+
+    ctx.beginPath()
+
+    ctx.moveTo(
+      center.x,
+      center.y,
+    )
+
+    ctx.lineTo(
+      point.x,
+      point.y,
+    )
+
+    ctx.strokeStyle =
+      gradient
+
+    ctx.lineWidth =
+      isHovering.value
+        ? 1
+        : 0.7
+
+    ctx.stroke()
+
+    /*
+     * 避免 TS 把 distance 认为未使用
+     */
+    if (
+      distance <
+      NODE_CONNECTION_DISTANCE
+    ) {
+      // intentionally empty
+    }
+  }
+
+  /*
+   * 节点之间的连接
+   */
+  for (
+    let i = 0;
+    i < positions.length;
+    i++
+  ) {
+    for (
+      let j = i + 1;
+      j < positions.length;
+      j++
+    ) {
+      const a = positions[i]
+      const b = positions[j]
+
+      const dx = a.x - b.x
+      const dy = a.y - b.y
+
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy,
+        )
+
+      if (
+        distance >
+        NODE_CONNECTION_DISTANCE
+      ) {
+        continue
+      }
+
+      const opacity =
+        isHovering.value
+          ? 0.075
+          : 0.035
+
+      ctx.beginPath()
+
+      ctx.moveTo(
+        a.x,
+        a.y,
+      )
+
+      ctx.lineTo(
+        b.x,
+        b.y,
+      )
+
+      ctx.strokeStyle =
+        `rgba(${color}, ${opacity})`
+
+      ctx.lineWidth = 0.6
+
+      ctx.stroke()
+    }
+  }
+}
+
+function drawParticleConnections() {
+  if (!ctx) {
+    return
+  }
+
+  const color =
+    isDarkMode()
+      ? '160, 160, 255'
+      : '100, 100, 180'
+
+  for (
+    let i = 0;
+    i < particles.length;
+    i++
+  ) {
+    const a = particles[i]
+
     for (
       let j = i + 1;
       j < particles.length;
       j++
     ) {
-      const a = particles[i]
       const b = particles[j]
 
-      const dx = a.x - b.x
-      const dy = a.y - b.y
+      const dx =
+        a.x - b.x
 
-      const distance = Math.sqrt(
-        dx * dx + dy * dy,
-      )
+      const dy =
+        a.y - b.y
 
-      if (distance > CONNECTION_DISTANCE) {
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy,
+        )
+
+      if (
+        distance >
+        MAX_CONNECTION_DISTANCE
+      ) {
         continue
       }
 
       let opacity =
-        (1 - distance / CONNECTION_DISTANCE) *
-        0.25
+        (1 -
+          distance /
+          MAX_CONNECTION_DISTANCE) *
+        0.12
 
-      if (isHovering.value) {
-        opacity *= 1.8
+      if (
+        isHovering.value
+      ) {
+        opacity *= 1.7
       }
 
       ctx.beginPath()
 
-      ctx.moveTo(a.x, a.y)
+      ctx.moveTo(
+        a.x,
+        a.y,
+      )
 
-      ctx.lineTo(b.x, b.y)
+      ctx.lineTo(
+        b.x,
+        b.y,
+      )
 
       ctx.strokeStyle =
-        `rgba(${lineColor}, ${opacity})`
+        `rgba(${color}, ${opacity})`
 
-      ctx.lineWidth =
-        isHovering.value ? 1 : 0.7
+      ctx.lineWidth = 0.5
 
       ctx.stroke()
     }
@@ -309,16 +612,24 @@ function drawConnections() {
 }
 
 function drawParticles() {
-  if (!ctx) return
+  if (!ctx) {
+    return
+  }
 
-  for (const particle of particles) {
+  for (
+    const particle of particles
+  ) {
     const size =
       particle.size *
-      (isHovering.value ? 1.25 : 1)
+      (isHovering.value
+        ? 1.25
+        : 1)
 
-    const opacity =
+    const alpha =
       particle.opacity *
-      (isHovering.value ? 1.25 : 1)
+      (isHovering.value
+        ? 1.18
+        : 1)
 
     ctx.beginPath()
 
@@ -330,44 +641,26 @@ function drawParticles() {
       Math.PI * 2,
     )
 
-    ctx.fillStyle = isDark.value
-      ? `rgba(170, 170, 255, ${opacity})`
-      : `rgba(80, 80, 180, ${opacity})`
+    ctx.fillStyle =
+      isDarkMode()
+        ? `rgba(190, 190, 255, ${alpha})`
+        : `rgba(90, 90, 170, ${alpha})`
 
     ctx.fill()
   }
 }
 
-function drawOrbit(
-  radius: number,
-  opacity: number,
-) {
-  if (!ctx) return
-
-  const centerX = width / 2
-  const centerY = height / 2
-
-  ctx.beginPath()
-
-  ctx.arc(
-    centerX,
-    centerY,
-    radius,
-    0,
-    Math.PI * 2,
-  )
-
-  ctx.strokeStyle = isDark.value
-    ? `rgba(130, 130, 255, ${opacity})`
-    : `rgba(80, 80, 180, ${opacity})`
-
-  ctx.lineWidth = 0.7
-
-  ctx.stroke()
-}
-
 function draw(time: number) {
-  if (!ctx) return
+  if (!ctx) {
+    return
+  }
+
+  if (!isVisible.value) {
+    frameId =
+      requestAnimationFrame(draw)
+
+    return
+  }
 
   ctx.clearRect(
     0,
@@ -376,44 +669,47 @@ function draw(time: number) {
     height,
   )
 
+  /*
+   * 背景光
+   */
+  drawBackgroundGlow()
+
+  /*
+   * 两个不完整轨道
+   */
+  drawOrbit(
+    Math.min(
+      width,
+      height,
+    ) * 0.29,
+    0.045,
+    time * 0.00003,
+  )
+
+  drawOrbit(
+    Math.min(
+      width,
+      height,
+    ) * 0.39,
+    0.025,
+    -time * 0.00002,
+  )
+
+  /*
+   * 节点网络
+   */
+  drawNodeConnections()
+
+  /*
+   * 粒子网络
+   */
   updateParticles(time)
 
-  const centerX = width / 2
-  const centerY = height / 2
+  drawParticleConnections()
 
-  /*
-   * 环境光
-   */
-  drawGlow(
-    centerX,
-    centerY,
-    Math.min(width, height) * 0.42,
-  )
-
-  /*
-   * Orbit
-   */
-  drawOrbit(
-    Math.min(width, height) * 0.25,
-    0.06,
-  )
-
-  drawOrbit(
-    Math.min(width, height) * 0.33,
-    0.035,
-  )
-
-  /*
-   * 网络连接
-   */
-  drawConnections()
-
-  /*
-   * 粒子
-   */
   drawParticles()
 
-  animationFrame =
+  frameId =
     requestAnimationFrame(draw)
 }
 
@@ -423,16 +719,20 @@ function handleMouseMove(
   const container =
     containerRef.value
 
-  if (!container) return
+  if (!container) {
+    return
+  }
 
   const rect =
     container.getBoundingClientRect()
 
   mouse.x =
-    event.clientX - rect.left
+    event.clientX -
+    rect.left
 
   mouse.y =
-    event.clientY - rect.top
+    event.clientY -
+    rect.top
 
   mouse.active = true
 }
@@ -444,10 +744,14 @@ function handleMouseEnter() {
 
 function handleMouseLeave() {
   isHovering.value = false
+
   mouse.active = false
 
-  mouse.x = width / 2
-  mouse.y = height / 2
+  mouse.x =
+    width / 2
+
+  mouse.y =
+    height / 2
 }
 
 function handleIntersection(
@@ -455,7 +759,9 @@ function handleIntersection(
 ) {
   const entry = entries[0]
 
-  if (!entry) return
+  if (!entry) {
+    return
+  }
 
   isVisible.value =
     entry.isIntersecting
@@ -469,30 +775,34 @@ onMounted(async () => {
   window.addEventListener(
     'resize',
     resizeCanvas,
-    { passive: true },
+    {
+      passive: true,
+    },
   )
 
   observer =
     new IntersectionObserver(
       handleIntersection,
       {
-        threshold: 0.1,
+        threshold: 0.08,
       },
     )
 
-  if (containerRef.value) {
+  if (
+    containerRef.value
+  ) {
     observer.observe(
       containerRef.value,
     )
   }
 
-  animationFrame =
+  frameId =
     requestAnimationFrame(draw)
 })
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(
-    animationFrame,
+    frameId,
   )
 
   observer?.disconnect()
@@ -507,357 +817,586 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section
-    ref="containerRef"
-    class="verse-hero"
-    :class="{
-      'is-hovering': isHovering,
-      'is-visible': isVisible,
-    }"
-    @mousemove="handleMouseMove"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
-  >
-    <!-- Canvas 网络 -->
-    <canvas
-      ref="canvasRef"
-      class="verse-hero__canvas"
-    />
+  <section ref="containerRef" class="verse-hero" :class="{
+    'is-hovering': isHovering,
+  }" @mousemove="handleMouseMove" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+    <!-- 背景 -->
+    <div class="verse-hero__noise" />
+    <div class="verse-hero__grid" />
+    <div class="verse-hero__scanline" />
 
-    <!-- 中央 Logo -->
-    <div class="verse-hero__center">
-      <div class="verse-hero__logo">
-        Z
+    <!-- Canvas -->
+    <canvas ref="canvasRef" class="verse-hero__canvas" />
+
+    <!-- 左上信息 -->
+    <div class="verse-hero__meta verse-hero__meta--top-left">
+      <span class="meta-index">
+        00
+      </span>
+
+      <span class="meta-line" />
+
+      <span>
+        PERSONAL KNOWLEDGE SPACE
+      </span>
+    </div>
+
+    <!-- 右上信息 -->
+    <div class="verse-hero__meta verse-hero__meta--top-right">
+      <span>
+        2026
+      </span>
+
+      <span class="meta-line" />
+
+      <span class="meta-live">
+        <i />
+        ONLINE
+      </span>
+    </div>
+
+    <!-- 中央主体 -->
+    <div class="verse-hero__content">
+      <div class="verse-hero__eyebrow">
+        <span />
+        TECHNICAL NOTES / SYSTEMS / IDEAS
       </div>
 
-      <div class="verse-hero__brand">
-        zeMinng
-      </div>
-
-      <div class="verse-hero__name">
+      <h1 class="verse-hero__title">
         Verse
+      </h1>
+
+      <p class="verse-hero__subtitle">
+        A living archive of
+        <span>Frontend</span>,
+        <span>Backend</span>,
+        <span>AI</span>
+        and
+        <span>Rust</span>.
+      </p>
+
+      <div class="verse-hero__rule">
+        <span />
+        <span />
+        <span />
       </div>
-
-      <div class="verse-hero__subtitle">
-        Frontend · Backend · AI · Rust
-      </div>
     </div>
 
-    <!-- 四周内容节点 -->
-    <div class="verse-hero__node node-frontend">
-      <span>Frontend</span>
+    <!-- 知识节点 -->
+    <div v-for="node in nodes" :key="node.index" class="verse-node" :class="[
+      `verse-node--${node.name.toLowerCase()}`,
+    ]">
+      <span class="verse-node__index">
+        {{ node.index }}
+      </span>
+
+      <span class="verse-node__dot" />
+
+      <span class="verse-node__label">
+        {{ node.name }}
+      </span>
     </div>
 
-    <div class="verse-hero__node node-ai">
-      <span>AI</span>
+    <!-- 左下 -->
+    <div class="verse-hero__footer verse-hero__footer--left">
+      <span class="footer-mark">
+        +
+      </span>
+
+      <span>
+        CURATED / BUILT / WRITTEN
+      </span>
     </div>
 
-    <div class="verse-hero__node node-rust">
-      <span>Rust</span>
-    </div>
+    <!-- 右下 -->
+    <div class="verse-hero__footer verse-hero__footer--right">
+      <span>
+        SCROLL TO EXPLORE
+      </span>
 
-    <div class="verse-hero__node node-backend">
-      <span>Backend</span>
-    </div>
-
-    <!-- 底部提示 -->
-    <div class="verse-hero__hint">
-      <span class="dot" />
-      Explore the Verse
+      <span class="footer-arrow">
+        ↘
+      </span>
     </div>
   </section>
 </template>
 
 <style scoped>
 .verse-hero {
+  --accent-rgb: 120, 120, 255;
+
   position: relative;
-
-  width: 100%;
-  min-height: 600px;
-
-  overflow: hidden;
-
   display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 28px;
-
+  width: 100%;
+  min-height: 650px;
+  overflow: hidden;
   background:
     radial-gradient(
-      circle at center,
-      rgba(120, 120, 255, 0.035),
-      transparent 55%
+      ellipse at center,
+      rgba(
+        var(--accent-rgb),
+        0.026
+      ),
+      transparent 58%
     );
-
+  border: 1px solid rgba(128, 128, 128, 0.08);
+  border-radius: 28px;
+  user-select: none;
+  align-items: center;
+  justify-content: center;
   isolation: isolate;
-
-  cursor: crosshair;
 }
 
 .verse-hero__canvas {
   position: absolute;
-
-  inset: 0;
-
+  z-index: 1;
   width: 100%;
   height: 100%;
-
-  z-index: 1;
-
   pointer-events: none;
+  inset: 0;
 }
 
 /* =========================
-   中央区域
+   背景 Grid
    ========================= */
 
-.verse-hero__center {
-  position: relative;
-
-  z-index: 5;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  pointer-events: none;
-
-  user-select: none;
-
-  transition:
-    transform 0.6s
-      cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.verse-hero.is-hovering
-  .verse-hero__center {
-  transform: scale(1.035);
-}
-
-.verse-hero__logo {
-  width: 100px;
-  height: 100px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  font-size: 62px;
-
-  font-weight: 800;
-
-  letter-spacing: -0.08em;
-
-  border-radius: 28px;
-
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(255, 255, 255, 0.015)
-    );
-
-  border: 1px solid
-    rgba(130, 130, 255, 0.15);
-
-  box-shadow:
-    0 0 0 1px
-      rgba(130, 130, 255, 0.025),
-    0 0 60px
-      rgba(100, 100, 255, 0.08);
-
-  transition:
-    transform 0.6s
-      cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.6s ease;
-}
-
-.verse-hero.is-hovering
-  .verse-hero__logo {
-  transform: translateY(-4px);
-
-  box-shadow:
-    0 0 0 1px
-      rgba(130, 130, 255, 0.08),
-    0 0 90px
-      rgba(100, 100, 255, 0.2);
-}
-
-.verse-hero__brand {
-  margin-top: 22px;
-
-  font-size: 13px;
-
-  font-weight: 600;
-
-  letter-spacing: 0.28em;
-
-  text-transform: uppercase;
-
-  opacity: 0.45;
-}
-
-.verse-hero__name {
-  margin-top: 4px;
-
-  font-size: clamp(
-    42px,
-    6vw,
-    76px
-  );
-
-  font-weight: 750;
-
-  letter-spacing: -0.065em;
-
-  line-height: 1;
-
-  background:
-    linear-gradient(
-      120deg,
-      currentColor 20%,
-      rgba(120, 120, 255, 0.72)
-    );
-
-  -webkit-background-clip: text;
-
-  background-clip: text;
-
-  color: transparent;
-}
-
-.verse-hero__subtitle {
-  margin-top: 16px;
-
-  font-size: 12px;
-
-  letter-spacing: 0.16em;
-
-  opacity: 0.4;
-}
-
-/* =========================
-   四个知识节点
-   ========================= */
-
-.verse-hero__node {
+.verse-hero__grid {
   position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(
+      rgba(
+        128,
+        128,
+        128,
+        0.07
+      ) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(
+        128,
+        128,
+        128,
+        0.07
+      ) 1px,
+      transparent 1px
+    );
+  background-size: 64px 64px;
+  opacity: 0.42;
+  inset: 0;
+  mask-image:
+    radial-gradient(
+      ellipse at center,
+      black 0%,
+      rgba(0, 0, 0, 0.9) 35%,
+      transparent 78%
+    );
+}
 
+/* =========================
+   Noise
+   ========================= */
+
+.verse-hero__noise {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  inset: 0;
+}
+
+/* =========================
+   Scanline
+   ========================= */
+
+.verse-hero__scanline {
+  position: absolute;
+  top: -10%;
+  right: 0;
+  left: 0;
   z-index: 4;
-
-  padding: 8px 14px;
-
-  border-radius: 999px;
-
-  font-size: 11px;
-
-  letter-spacing: 0.08em;
-
-  opacity: 0.38;
-
-  border: 1px solid
-    rgba(130, 130, 255, 0.1);
-
+  height: 1px;
+  pointer-events: none;
   background:
-    rgba(120, 120, 255, 0.025);
-
-  backdrop-filter: blur(8px);
-
-  transition:
-    opacity 0.4s ease,
-    transform 0.5s
-      cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.4s ease;
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(
+        var(--accent-rgb),
+        0.18
+      ),
+      transparent
+    );
+  opacity: 0;
+  animation: scan 9s linear infinite;
 }
 
-.verse-hero.is-hovering
-  .verse-hero__node {
-  opacity: 0.75;
-
-  border-color:
-    rgba(130, 130, 255, 0.22);
+.verse-hero.is-hovering .verse-hero__scanline {
+  opacity: 1;
 }
 
-.node-frontend {
-  top: 27%;
-  left: 18%;
-}
+@keyframes scan {
+  from {
+    transform: translateY(0);
+  }
 
-.node-ai {
-  top: 20%;
-  right: 22%;
-}
-
-.node-rust {
-  bottom: 25%;
-  left: 23%;
-}
-
-.node-backend {
-  bottom: 22%;
-  right: 19%;
+  to {
+    transform: translateY(760px);
+  }
 }
 
 /* =========================
-   底部
+   Meta
    ========================= */
 
-.verse-hero__hint {
+.verse-hero__meta {
   position: absolute;
-
-  z-index: 5;
-
-  bottom: 28px;
-
-  left: 50%;
-
-  transform: translateX(-50%);
-
+  top: 28px;
+  z-index: 7;
   display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-
-  font-size: 10px;
-
-  letter-spacing: 0.14em;
-
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-
-  opacity: 0.3;
-
-  white-space: nowrap;
+  opacity: 0.35;
+  align-items: center;
+  gap: 10px;
 }
 
-.dot {
-  width: 5px;
-  height: 5px;
+.verse-hero__meta--top-left {
+  left: 30px;
+}
 
-  border-radius: 50%;
+.verse-hero__meta--top-right {
+  right: 30px;
+}
 
+.meta-index {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.meta-line {
+  width: 34px;
+  height: 1px;
   background: currentColor;
-
-  animation:
-    blink 2s ease-in-out infinite;
+  opacity: 0.35;
 }
 
-@keyframes blink {
+.meta-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meta-live i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: live 2s ease-in-out infinite;
+}
+
+@keyframes live {
   0%,
   100% {
     opacity: 0.25;
-    transform: scale(0.8);
   }
 
   50% {
     opacity: 1;
-    transform: scale(1.2);
   }
+}
+
+/* =========================
+   Center
+   ========================= */
+
+.verse-hero__content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    transform 0.8s cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    );
+}
+
+.verse-hero.is-hovering .verse-hero__content {
+  transform: translateY(-8px);
+}
+
+.verse-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.17em;
+  opacity: 0.36;
+}
+
+.verse-hero__eyebrow span {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.65;
+}
+
+.verse-hero__title {
+  display: block;
+  padding: 0 0.12em;
+
+  /*
+   * 给文字左右留出真正的安全区域
+   */
+  margin: 8px 0 0;
+
+  /*
+   * 防止背景裁切影响最后一个字母
+   */
+  overflow: visible;
+  font-size:
+    clamp(
+      76px,
+      10vw,
+      132px
+    );
+  font-weight: 750;
+
+  /*
+   * 这里不要使用 1
+   * 给字体上下留一点 glyph 空间
+   */
+  line-height: 1.08;
+
+  /*
+   * 不要压得太狠
+   */
+  letter-spacing: -0.035em;
+  color: transparent;
+
+  /*
+   * 不允许 Verse 被拆开
+   */
+  white-space: nowrap;
+
+  /*
+   * 渐变文字
+   */
+  background:
+    linear-gradient(
+      120deg,
+      currentColor 20%,
+      rgba(
+        var(--accent-rgb),
+        0.65
+      ) 100%
+    );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.verse-hero.is-hovering .verse-hero__title {
+  filter:
+    drop-shadow(
+      0 0 42px rgba(
+        var(--accent-rgb),
+        0.11
+      )
+    );
+  transform: scale(1.015);
+}
+
+.verse-hero__subtitle {
+  max-width: 520px;
+  margin: 26px 0 0;
+  font-size:
+    clamp(
+      12px,
+      1.3vw,
+      14px
+    );
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  opacity: 0.48;
+}
+
+.verse-hero__subtitle span {
+  opacity: 0.92;
+}
+
+.verse-hero__rule {
+  display: flex;
+  margin-top: 28px;
+  opacity: 0.25;
+  align-items: center;
+  gap: 5px;
+}
+
+.verse-hero__rule span {
+  width: 5px;
+  height: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.verse-hero__rule span:nth-child(2) {
+  width: 24px;
+  border-radius: 0;
+}
+
+/* =========================
+   Node
+   ========================= */
+
+.verse-node {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  pointer-events: none;
+  opacity: 0.36;
+  transition:
+    opacity 0.45s ease,
+    transform 0.6s cubic-bezier(
+      0.22,
+      1,
+      0.36,
+      1
+    );
+}
+
+.verse-hero.is-hovering .verse-node {
+  opacity: 0.78;
+}
+
+.verse-node__index {
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  opacity: 0.55;
+}
+
+.verse-node__dot {
+  width: 5px;
+  height: 5px;
+  border:
+    1px solid rgba(
+      var(--accent-rgb),
+      0.45
+    );
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px rgba(
+      var(--accent-rgb),
+      0.025
+    );
+}
+
+.verse-node__label {
+  font-size: 10px;
+  font-weight: 550;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.verse-node--frontend {
+  top: 39%;
+  left: 17%;
+}
+
+.verse-node--ai {
+  top: 25%;
+  right: 18%;
+}
+
+.verse-node--rust {
+  bottom: 22%;
+  left: 20%;
+}
+
+.verse-node--backend {
+  right: 17%;
+  bottom: 27%;
+}
+
+.verse-hero.is-hovering .verse-node--frontend {
+  transform: translateX(-5px);
+}
+
+.verse-hero.is-hovering .verse-node--ai {
+  transform: translateY(-5px);
+}
+
+.verse-hero.is-hovering .verse-node--rust {
+  transform: translateX(-5px);
+}
+
+.verse-hero.is-hovering .verse-node--backend {
+  transform: translateX(5px);
+}
+
+/* =========================
+   Footer
+   ========================= */
+
+.verse-hero__footer {
+  position: absolute;
+  bottom: 28px;
+  z-index: 7;
+  display: flex;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.28;
+  align-items: center;
+  gap: 9px;
+}
+
+.verse-hero__footer--left {
+  left: 30px;
+}
+
+.verse-hero__footer--right {
+  right: 30px;
+}
+
+.footer-mark {
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.footer-arrow {
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: transform 0.35s ease;
+}
+
+.verse-hero:hover .footer-arrow {
+  transform:
+    translate(
+      3px,
+      3px
+    );
 }
 
 /* =========================
@@ -866,56 +1405,100 @@ onBeforeUnmount(() => {
 
 @media (max-width: 768px) {
   .verse-hero {
-    min-height: 480px;
-
+    min-height: 500px;
     border-radius: 20px;
   }
 
-  .verse-hero__logo {
-    width: 78px;
-    height: 78px;
-
-    font-size: 48px;
-
-    border-radius: 22px;
+  .verse-hero__grid {
+    background-size: 42px 42px;
   }
 
-  .verse-hero__brand {
-    margin-top: 16px;
+  .verse-hero__meta {
+    top: 20px;
+    font-size: 7px;
+  }
 
-    font-size: 10px;
+  .verse-hero__meta--top-left {
+    left: 18px;
+  }
+
+  .verse-hero__meta--top-right {
+    right: 18px;
+  }
+
+  .verse-hero__meta--top-left > span:last-child {
+    display: none;
+  }
+
+  .verse-hero__title {
+    font-size:
+      clamp(
+        72px,
+        24vw,
+        112px
+      );
+  }
+
+  .verse-hero__eyebrow {
+    font-size: 7px;
+    letter-spacing: 0.13em;
   }
 
   .verse-hero__subtitle {
-    font-size: 9px;
-
-    letter-spacing: 0.08em;
+    max-width: 290px;
+    padding: 0 16px;
+    font-size: 11px;
+    line-height: 1.8;
   }
 
-  .verse-hero__node {
-    font-size: 9px;
-
-    padding: 6px 10px;
+  .verse-node {
+    gap: 6px;
   }
 
-  .node-frontend {
-    top: 23%;
+  .verse-node__index {
+    font-size: 7px;
+  }
+
+  .verse-node__label {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .verse-node--frontend {
+    top: 35%;
     left: 8%;
   }
 
-  .node-ai {
-    top: 18%;
-    right: 9%;
-  }
-
-  .node-rust {
-    bottom: 23%;
-    left: 10%;
-  }
-
-  .node-backend {
-    bottom: 20%;
+  .verse-node--ai {
+    top: 26%;
     right: 8%;
+  }
+
+  .verse-node--rust {
+    bottom: 21%;
+    left: 9%;
+  }
+
+  .verse-node--backend {
+    right: 8%;
+    bottom: 27%;
+  }
+
+  .verse-hero__footer {
+    bottom: 18px;
+    font-size: 7px;
+  }
+
+  .verse-hero__footer--left {
+    left: 18px;
+  }
+
+  .verse-hero__footer--right {
+    right: 18px;
+  }
+
+  .verse-hero__footer--left span:last-child {
+    display: none;
   }
 }
 
@@ -924,14 +1507,15 @@ onBeforeUnmount(() => {
    ========================= */
 
 @media (prefers-reduced-motion: reduce) {
-  .verse-hero__center,
-  .verse-hero__logo,
-  .verse-hero__node {
-    transition: none;
+  .verse-hero__scanline,
+  .meta-live i {
+    animation: none;
   }
 
-  .dot {
-    animation: none;
+  .verse-hero__content,
+  .verse-hero__title,
+  .verse-node {
+    transition: none;
   }
 }
 </style>
