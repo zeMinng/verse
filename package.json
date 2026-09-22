@@ -1,0 +1,27 @@
+{
+  "name": "verse",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal technical notes, separated by chapters. | 个人技术笔记，按章节分类",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeMinng/verse.git"
+  },
+  "author": "zeMinng",
+  "license": "CC BY-NC-SA 4.0",
+  "bugs": {
+    "url": "https://github.com/zeMinng/verse/issues"
+  },
+  "homepage": "https://github.com/zeMinng/verse#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@voidzero-dev/vitepress-theme": "^5.0.7",
+    "vitepress": "^2.0.0-alpha.20"
+  }
+}

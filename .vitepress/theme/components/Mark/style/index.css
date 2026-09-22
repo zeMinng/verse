@@ -1,0 +1,45 @@
+.vp-mark {
+  --vp-mark-color: rgba(250,224,120,.9);
+  padding: 0 .2em;
+  border-radius: .15em;
+  color: inherit;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 100% 60%;
+  background-position: 0 70%;
+  background-image: linear-gradient(transparent 40%, var(--vp-mark-color) 0);
+  transition: background 0.3s;
+  animation: markFade 0.6s ease-in-out;
+}
+
+.dark .vp-mark {
+  --vp-mark-color: rgba(250,224,120,.55);
+}
+
+.vp-mark:hover {
+  background-size: 100% 80%;
+  filter: brightness(1.1);
+}
+@keyframes markFade {
+  0% { background-size: 0 60%; }
+  100% { background-size: 100% 60%; }
+}
+
+/* 语义色系扩展 */
+.vp-mark--green { --vp-mark-color: rgba(145,224,170,.9); }
+.dark .vp-mark--green { --vp-mark-color: rgba(145,224,170,.55); }
+
+.vp-mark--blue { --vp-mark-color: rgba(150,200,255,.9); }
+.dark .vp-mark--blue { --vp-mark-color: rgba(150,200,255,.55); }
+
+.vp-mark--pink { --vp-mark-color: rgba(255,170,200,.9); }
+.dark .vp-mark--pink { --vp-mark-color: rgba(255,170,200,.55); }
+
+.vp-mark--info { --vp-mark-color: rgba(125,211,252,.9); }
+.dark .vp-mark--info { --vp-mark-color: rgba(125,211,252,.55); }
+
+.vp-mark--warning { --vp-mark-color: rgba(251,191,36,.9); }
+.dark .vp-mark--warning { --vp-mark-color: rgba(251,191,36,.55); }
+
+.vp-mark--danger { --vp-mark-color: rgba(248,113,113,.9); }
+.dark .vp-mark--danger { --vp-mark-color: rgba(248,113,113,.55); }
