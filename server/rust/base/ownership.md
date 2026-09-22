@@ -30,7 +30,7 @@ fn main() {
 fn main() {
   let s = String::from("rust");
   let len = calc_len(&s); // &s 创建引用，不转移所有权
-  println!(""{s}" 的长度是 {len}"); // s 仍可用
+  println!("{s} 的长度是 {len}"); // s 仍可用
 }
 
 fn calc_len(s: &String) -> usize { s.len() }
