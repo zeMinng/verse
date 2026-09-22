@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📖 verse · 小棱镜
+# Verse
 
 个人技术笔记文档站 · 按章节归档，随时检索，沉淀复用
 
@@ -10,28 +10,28 @@
 
 </div>
 
-## ✨ 为什么是 verse？
+## 为什么是 Verse？
 
-`verse` 是一个用 VitePress 构建的个人技术笔记文档站，记录前端、服务端开发中的踩坑经验与代码片段。本地全文检索、零成本静态部署，为自己沉淀一份随查随用的技术手册。
+`Verse` 是一个用 VitePress 构建的个人技术笔记文档站，记录前端、服务端开发中的踩坑经验与代码片段。本地全文检索、零成本静态部署，为自己沉淀一份随查随用的技术手册。
 
 ## ✨ 特性亮点
 
 | 模块 | 核心能力 |
 | :--- | :--- |
-| 📚 **章节化归档** | 前端 / 服务 / 手记三大板块，按主题细分整理 |
-| 🔍 **全文搜索** | 本地检索，快速定位笔记与代码片段 |
-| 🎨 **VitePress 主题** | 现代化文档主题，暗色模式适配 |
-| 🚀 **纯静态部署** | Cloudflare Pages / Netlify 托管，无需服务器与域名 |
+| **章节化归档** | 前端 / 服务 / 手记三大板块，按主题细分整理 |
+| **全文搜索** | 本地检索，快速定位笔记与代码片段 |
+| **VitePress 主题** | 现代化文档主题，暗色模式适配 |
+| **纯静态部署** | Cloudflare Pages / Netlify 托管，无需服务器与域名 |
 
 ## 📖 内容导航
 
 | 板块 | 路径 | 包含 |
 | :--- | :--- | :--- |
-| 🚀 开始 | `/start` | 简介、为什么创建 |
-| 🎨 前端 | `/web/` | Vue3、UniApp、React、基础、CLI、解决方案、性能、Web API |
-| 🛠️ 服务 | `/server/` | Java、Python、Rust、工具链、LangChain |
-| ✍️ 手记 | `/writings/` | AI（Claude Code、AI 工具）、微信小程序抓包 |
-| 👤 关于 | `/about` | 关于作者 |
+| 开始 | `/start` | 简介、为什么创建 |
+| 前端 | `/web/` | Vue3、UniApp、React、基础、CLI、解决方案、性能、Web API |
+| 服务 | `/server/` | Java、Python、Rust、工具链、LangChain |
+| 手记 | `/writings/` | AI（Claude Code、AI 工具）、微信小程序抓包 |
+| 关于 | `/about` | 关于作者 |
 
 ## 🚀 本地开发
 
@@ -63,7 +63,7 @@ npm run preview
 
 <div align="center">
   <p>
-    📖 Powered by <b>VitePress</b> · Crafted with ❤️ by <a href="https://github.com/zeMinng">zeMinng</a><br />
+    Powered by VitePress · Crafted with ❤️ by <a href="https://github.com/zeMinng">zeMinng</a><br />
     Released under the <a href="./LICENSE">CC BY-NC-SA 4.0</a> License © 2023–present
   </p>
 </div>
