@@ -242,20 +242,12 @@ cargo install wasm-bindgen-cli --force
 
 ## 小结
 
+:::info 📖 相关资源
 <ResourceLinks
   :grid="2"
   :groups="[
     {
-      title: '官方文档与电子书',
-      icon: 'simple-icons:rust',
-      items: [
-        { name: 'Rust 官方电子书', desc: 'The Rust Programming Language 中文版', link: 'https://kaisery.github.io/trpl-zh-cn/' },
-        { name: 'Rust By Example', desc: '通过例子学习 Rust', link: 'https://doc.rust-lang.org/rust-by-example/zh/hello.html' },
-        { name: '通过例子学习 Rust', desc: 'rustwiki 中文译本', link: 'https://rustwiki.org/zh-CN/rust-by-example/hello.html' },
-      ]
-    },
-    {
-      title: 'WebAssembly 工具链',
+      title: '',
       icon: 'simple-icons:wasm',
       items: [
         { name: 'wasm-pack', desc: 'Rust → WebAssembly 构建与发布工具', link: 'https://github.com/rustwasm/wasm-pack' },
@@ -264,3 +256,4 @@ cargo install wasm-bindgen-cli --force
     },
   ]"
 />
+:::
