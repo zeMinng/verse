@@ -2,7 +2,7 @@
 
 ## 概要
 
-[WebAssembly（Wasm）](https://webassembly.org) 让你可以把 Rust 编译成浏览器可运行的二进制模块，并通过 JavaScript 调用导出的函数。本页从安装 Rust 开始，到浏览器中跑通第一个 Wasm 模块结束——适合想用 Rust 写前端逻辑的读者。
+[WebAssembly (Wasm)](https://webassembly.org) 可将 Rust 编译为浏览器可运行的二进制模块，供 JavaScript 调用。
 
 ## 一、安装 Rust（rustup）
 
@@ -14,8 +14,10 @@
 
 - 打开环境变量配置（Win + R → 输入 sysdm.cpl → **高级** → **环境变量**）
 - 新增系统变量或用户变量：
-  1. RUSTUP_DIST_SERVER：`https://mirrors.tuna.tsinghua.edu.cn/rustup`
-  2. RUSTUP_UPDATE_ROOT：`https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup`
+  ```bash
+  RUSTUP_DIST_SERVER=https://mirrors.tuna.tsinghua.edu.cn/rustup
+  RUSTUP_UPDATE_ROOT=https://mirrors.tuna.tsinghua.edu.cn/rustup/rustup
+  ```
 
 完成后建议**重开终端**再继续安装/更新。
 
@@ -196,7 +198,7 @@ wasm-bindgen \
 
 ### 1. Windows：MSVC toolchain 报缺少 `link.exe`
 
-::: details MSVC link.exe 问题排查
+::::details MSVC link.exe 问题排查
 现象：在 Windows 下使用 **MSVC toolchain** 编译 Rust 时，报错提示找不到 `link.exe`，常见于刚装完 Rust、但没有安装 MSVC 构建工具的环境。
 
 解决方案：
@@ -225,7 +227,7 @@ where link
 ```text
 C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.43.XXXXX\bin\Hostx64\x64\link.exe
 ```
-:::
+::::
 
 ### 2. `wasm-pack` / `wasm-bindgen` 版本不匹配
 
@@ -240,14 +242,25 @@ cargo install wasm-bindgen-cli --force
 
 ## 小结
 
-- **rustup** 是管理 Rust 工具链的首选方式，安装后顺手添加 `wasm32-unknown-unknown` 编译目标
-- **wasm-pack** 一条龙搞定 Wasm 编译 + JS glue 打包，适合快速上手；**wasm-bindgen-cli** 更底层，适合理解原理
-- Wasm 模块必须通过 `http(s)` 访问——`file://` 协议会因 CORS/模块加载限制导致失败
-
-:::info 📖 相关资源
-- [Rust + Wasm 官方书（rustwasm）](https://rustwasm.github.io/docs/book/)
-- [wasm-pack](https://github.com/rustwasm/wasm-pack)
-- [wasm-bindgen](https://github.com/rustwasm/wasm-bindgen)
-- [Rust 语法基础](./base/) - 变量、类型、函数、流程控制入门
-- [所有权与生命周期](./base/ownership) - 理解 Rust 内存安全的核心机制
-:::
+<ResourceLinks
+  :grid="2"
+  :groups="[
+    {
+      title: '官方文档与电子书',
+      icon: 'simple-icons:rust',
+      items: [
+        { name: 'Rust 官方电子书', desc: 'The Rust Programming Language 中文版', link: 'https://kaisery.github.io/trpl-zh-cn/' },
+        { name: 'Rust By Example', desc: '通过例子学习 Rust', link: 'https://doc.rust-lang.org/rust-by-example/zh/hello.html' },
+        { name: '通过例子学习 Rust', desc: 'rustwiki 中文译本', link: 'https://rustwiki.org/zh-CN/rust-by-example/hello.html' },
+      ]
+    },
+    {
+      title: 'WebAssembly 工具链',
+      icon: 'simple-icons:wasm',
+      items: [
+        { name: 'wasm-pack', desc: 'Rust → WebAssembly 构建与发布工具', link: 'https://github.com/rustwasm/wasm-pack' },
+        { name: 'wasm-bindgen', desc: 'Rust/Wasm 与 JavaScript 互操作桥接', link: 'https://github.com/rustwasm/wasm-bindgen' },
+      ]
+    },
+  ]"
+/>

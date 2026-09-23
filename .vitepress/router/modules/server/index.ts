@@ -5,9 +5,9 @@ import toolchain from './toolchain.ts'
 import langchain from './langchain.ts'
 
 export default [
+  rust,
   java,
   python,
-  rust,
   toolchain,
   langchain,
 ]
