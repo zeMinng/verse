@@ -149,10 +149,10 @@ Rust 枚举最核心的特色：**每个变体可以携带不同类型的数据*
 ::: code-group
 ```rust [定义枚举]
 enum WebEvent {
-    Click,                              // 无数据：纯标记
-    KeyPress(char),                     // 元组变体：携带按键字符
-    Resize { width: u32, height: u32 }, // 结构体变体：携带尺寸
-    Paste(String),                      // 元组变体：携带剪贴板内容
+  Click,                              // 无数据：纯标记
+  KeyPress(char),                     // 元组变体：携带按键字符
+  Resize { width: u32, height: u32 }, // 结构体变体：携带尺寸
+  Paste(String),                      // 元组变体：携带剪贴板内容
 }
 ```
 
@@ -175,7 +175,7 @@ fn main() {
 ```
 :::
 
-### 2. 枚举上的方法
+### 2. 枚举上的方法 - impl
 
 和结构体一样，用 `impl` 块为枚举定义方法：
 
@@ -200,26 +200,36 @@ fn main() {
 }
 ```
 
-### 3. Option\<T\>：安全的"空值"
+### 3. Option 枚举与空值
 
-Rust 没有 `null`。可能"有值"或"无值"的场景用 `Option<T>` 枚举表达——它只有两个变体：`Some(T)` 和 `None`。编译器强制你处理 `None` 分支，从根源上消除空指针异常。
+Rust 没有 `null`。可能“有值”或“无值”的场景用 `Option<T>` 枚举表达——它只有两个变体：`Some(T)` 和 `None`。编译器强制你处理 `None` 分支，从根源上消除空指针异常。
 
-```rust{1-3,6-13}
+```rust {2-5,15-16}
 // 标准库中的定义（概念示意）
-// enum Option<T> { Some(T), None }
+enum Option<T> {
+  Some(T),
+  None,
+}
 
+// 示例
 fn find_user(id: u32) -> Option<String> {
   if id == 0 { None } else { Some(format!("user_{id}")) }
 }
 
 fn main() {
-  // match 处理
+  // match：必须处理 Some 和 None
   match find_user(42) {
     Some(name) => println!("found: {name}"),
     None => println!("not found"),
   }
-  // 快捷方法：给 None 一个默认值
-  let name = find_user(0).unwrap_or("anonymous".into());
+
+  // if let：只关心 Some 分支
+  if let Some(name) = find_user(42) {
+    println!("found: {name}");
+  }
+
+  // 给 None 一个默认值
+  let name = find_user(0).unwrap_or_else(|| "anonymous".to_string());
   println!("{name}"); // anonymous
 }
 ```
@@ -227,16 +237,80 @@ fn main() {
 | 方法 | 作用 | 说明 |
 | --- | --- | --- |
 | `unwrap()` | 取出 `Some` 中的值 | `None` 会 panic，仅用于确定不会为 None 的场景 |
-| `unwrap_or(default)` | 取出值或返回默认值 | `opt.unwrap_or("默认")` |
+| `unwrap_or(default)` | 取出值或返回默认值 | `opt.unwrap_or("默认".to_string())` |
+| `unwrap_or_else(f)` |	取出值或调用闭包生成默认值 | 适合默认值构造代价高的场景 |
 | `is_some()` / `is_none()` | 判断是 Some 还是 None | `if opt.is_some() { ... }` |
 | `map(f)` | `Some(v)` → `Some(f(v))` | `None` 不变 |
+| `as_ref()` | `&Option<T>` → `Option<&T>` | 借用内部值，避免移动所有权 |
 
 
-### 4. match 守卫（Guard）
+### 4. match 控制流结构
 
-用 `if` 条件进一步过滤匹配分支：
+:::code-group
+```rust [match例子]
+enum Coin {
+  Penny,
+  Nickel,
+  Dime,
+  Quarter,
+}
 
-```rust{3-6}
+fn value_in_cents(coin: Coin) -> u8 {
+  match coin {
+    Coin::Penny => 1,
+    Coin::Nickel => 5,
+    Coin::Dime => 10,
+    Coin::Quarter => 25,
+  }
+}
+```
+
+```rust{18-21} [绑定值的模式]
+// 定义枚举 Coin
+enum Coin {
+  Penny,
+  Nickel,
+  Dime,
+  Quarter(UsState), // Quarter变体，携带一个UsState数据
+}
+
+// 一个枚举：美国的州，随便定义
+#[derive(Debug)]
+enum UsState { Alabama, Alaska }
+
+fn value_in_cents(coin: Coin) -> u8 {
+  match coin {
+    Coin::Penny => 1,
+    Coin::Nickel => 5,
+    Coin::Dime => 10,
+    Coin::Quarter(state) => {
+      println!("State quarter from {state:?}!");
+      25
+    }
+  }
+}
+
+fn main() {
+  let c = Coin::Quarter(UsState::Alaska);
+  println!("{}", value_in_cents(c));
+}
+```
+
+```rust [匹配 Option&lt;T&gt;]
+fn plus_one(x: Option<i32>) -> Option<i32> {
+  match x {
+    None => None,
+    Some(i) => Some(i + 1),
+  }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+
+```rust{3-6} [match if]
+// 用 `if` 条件进一步过滤匹配分支：
 fn describe(n: i32) -> &'static str {
   match n {
     n if n < 0 => "负数",
@@ -250,6 +324,7 @@ fn main() {
   println!("{}", describe(6)); // 正偶数
 }
 ```
+:::
 
 ### 5. @ 绑定与嵌套解构
 
