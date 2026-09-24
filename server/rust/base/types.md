@@ -2,22 +2,18 @@
 
 ## 概要
 
-类型系统是 Rust 建模数据的核心工具链。本页按"从具体到抽象"的递进路线展开：从自定义数据容器（结构体）→ 枚举表示多选一 → 泛型消除重复 → Trait 抽象行为 → 迭代器处理数据流 → Result/Option 处理错误。建议初学时分两次读完：前三段（结构体 + 枚举 + 泛型）是先掌握的基础，后三段（Trait + 迭代器 + 错误处理）可以在实际项目中边用边学。
+类型系统是 Rust 建模数据的核心工具链。
 
-::: tip 前置知识
-阅读前请先熟悉 [语法基础](./) 中的变量、数据类型、函数和流程控制，以及 [所有权与生命周期](./ownership) 中的借用规则。
-:::
+## 一、结构体 (struct)
 
-## 一、结构体: 自定义数据容器
-
-==结构体== 把一组相关字段打包成一个新类型。与元组不同，每个字段有**名称**，自文档化且无顺序依赖。数据在堆还是在栈取决于字段类型——含 `String` / `Vec` 的结构体数据在堆上，纯标量字段的结构体则完全在栈上。
+结构体把一组相关字段打包成一个新类型。与元组不同，每个字段都有名称，因此更自文档化，也不依赖顺序。结构体值本身的内存位置取决于它被放在哪里：作为局部变量时通常在栈上，作为 Box 或 Vec 元素时可能在堆上。字段若为 `String` / `Vec`，其堆缓冲区在堆上；纯标量字段则没有额外的堆分配。
 
 ### 1. 定义与实例化
 
-定义结构体用 `struct` 关键字。实例化时如果变量名和字段名相同可省略冒号（**字段初始化简写**）。从一个已有实例创建新实例时，用 `..` 语法复用其余字段。
+定义结构体用 `struct` 关键字。实例化时，如果字段名与变量名相同，可省略冒号，即字段初始化简写。从一个已有实例创建新实例时，可用 .. 语法复用其余字段。
 
 ::: code-group
-```rust{2-5,8} [基本定义]
+```rust{1-5,8} [基本定义]
 struct User {
   name: String,
   age: u8,
@@ -34,7 +30,7 @@ fn main() {
 }
 ```
 
-```rust{2-3,8} [字段初始化简写]
+```rust{3-4} [字段初始化简写]
 fn create_user(name: String, age: u8) -> User {
   User {
     name,   // 等价 name: name
@@ -49,7 +45,7 @@ fn main() {
 }
 ```
 
-```rust{3} [结构体更新语法]
+```rust{4} [结构体更新语法]
 fn main() {
   let u1 = User { name: "Alice".into(), age: 20, active: true };
   // 复用 u1 的 age 和 active，只改 name
@@ -60,14 +56,14 @@ fn main() {
 :::
 
 ::: warning 注意
-==原变量整体失效==——结构体更新语法 `..u1` 只要有一个字段被移走（含 `String`/`Vec` 等堆类型），**整个原变量就不能再用了**，即使其他字段都是 Copy 类型。
+结构体更新语法 `..u1` 会移动 u1 中未被显式指定的字段。如果这些字段都实现了 Copy，它们会被复制，u1 仍可整体使用；只要其中有非 Copy 字段（如 String、Vec）被移动，u1 就会发生部分移动，不能再作为整体使用，但未被移动的字段仍可单独访问。
 
-具体机制：实现了 `Copy` 的字段（`i32`、`bool` 等）编译器自动拷贝，原变量仍可用对应字段；未实现 `Copy` 的字段（`String`、`Vec` 等）被移走后，编译器将原变量标记为"已移动"，整不可访问。
+具体机制：实现了 `Copy` 的字段（`i32`、`bool` 等）在 `..u1` 中自动拷贝；未实现 `Copy` 的字段（`String`、`Vec` 等）会被移走，使原变量发生部分移动，不能再整体使用。
 :::
 
-### 2. 方法与关联函数
+### 2. 方法与关联函数 - impl
 
-用 `impl` 块为结构体添加行为。`&self` 参数表示**实例方法**（读取），`&mut self` 表示**可变方法**（修改）。第一个参数不是 `self` 的称为**关联函数**，常用于构造器 `new`——调用时用 `::` 而非 `.`。
+用 `impl` 块为结构体添加行为。`&self` 参数表示**实例方法**（只读借用），`&mut self` 表示**可变方法**（修改-可变借用），而 self 表示按值获取所有权的方法。第一个参数不是 `self` 的称为**关联函数**，常用于构造器 `new` — 调用时用 `::` 而非 `.`。
 
 ::: code-group
 ```rust{3-4,7-9} [实例方法与可变方法]
@@ -105,9 +101,21 @@ fn main() {
 ```
 :::
 
-### 3. 常用派生宏
+### 3. 其他结构体形式
 
-手工实现 `Debug`、`Clone`、`PartialEq` 非常机械，Rust 提供 `#[derive]` 让编译器自动生成这些 trait 的实现。**开发时先把这三个加上**——`Debug` 用于 `println!("{:?}")` 调试，`Clone` 用于显式拷贝，`PartialEq` 让 `==` 比较字段值而非地址。
+除具名字段的结构体外，Rust 还有两种不常用的形式：
+
+| 形式 | 语法 | 用途 |
+| --- | --- | --- |
+| 具名字段 | `struct User { name: String };` | 有意义的字段名，最常用 |
+| 元组结构体 | `struct Color(u8, u8, u8);` | 给元组一个类型名，字段无名 |
+| 单元结构体 | `struct AlwaysValid;` | 不存数据，纯标记用途（如 trait 实现） |
+
+元组结构体适合"需要类型安全但字段命名冗余"的场景，比如 RGB 颜色不需要叫 red、green、blue，类型名 `Color` 已经说明了含义。
+
+### 4. 常用派生宏
+
+手工实现 `Debug`、`Clone`、`PartialEq` 非常机械，Rust 提供 `#[derive]` 让编译器自动生成这些 trait 的实现。**开发阶段通常先派生这三个 trait：**`Debug` 用于 `println!("{:?}")` 调试，`Clone` 用于显式拷贝，`PartialEq` 让 `==` 比较字段值而非地址。
 
 ```rust{1}
 #[derive(Debug, Clone, PartialEq)]
@@ -128,33 +136,23 @@ fn main() {
 `String` / `Vec` 默认不支持 `Copy`（因为涉及堆内存），所以 `#[derive]` 列表中**不要随意加 Copy**——编译器只有在所有字段都是栈上类型时才允许。`Clone` 是显式的、允许堆分配的拷贝，可以放心加。
 :::
 
-### 4. 其他结构体形式
+## 二、枚举与模式匹配 (enums)
 
-除具名字段的结构体外，Rust 还有两种不常用的形式：
+**枚举**用来表达**多选一**：一个枚举值只能是定义里列出的其中一个变体（variant）。
 
-| 形式 | 语法 | 用途 |
-| --- | --- | --- |
-| 具名字段（Named Field） | `struct User { name: String }` | 有意义的字段名，最常用 |
-| 元组结构体（Tuple Struct） | `struct Color(u8, u8, u8)` | 给元组一个类型名，字段无名 |
-| 单元结构体（Unit Struct） | `struct AlwaysValid;` | 不存数据，纯标记用途（如 trait 实现） |
-
-元组结构体适合"需要类型安全但字段命名冗余"的场景——比如 RGB 颜色不需要叫 `red/green/blue`，类型名 `Color` 已经说明了含义。
-
-## 二、枚举与模式匹配
-
-==枚举== 表示"多选一"——值只能是列出的若干变体（variant）之一。Rust 枚举的核心能力在于**每个变体可以携带不同类型的数据**，这是实现 `Option<T>` 和 `Result<T, E>` 的语言机制。配合 `match` 可穷举所有变体，编译器强制覆盖所有情况。
+Rust 枚举最核心的特色：**每个变体可以携带不同类型的数据**。`Option<T>`、`Result<T, E>` 就是基于这个语言特性实现。搭配 `match` 模式匹配，编译器会强制要求覆盖全部变体，杜绝遗漏分支。
 
 ### 1. 枚举定义
 
 枚举变体有三种携带数据的形式：无数据（纯标记）、携带元组、携带匿名结构体。
 
 ::: code-group
-```rust{1-5} [定义枚举]
+```rust [定义枚举]
 enum WebEvent {
-  Click,                          // 无数据：纯标记
-  KeyPress(char),                 // 元组形式：携带按键字符
-  Resize { width: u32, height: u32 }, // 结构体形式：携带尺寸
-  Paste(String),                  // 元组形式：携带剪贴板内容
+    Click,                              // 无数据：纯标记
+    KeyPress(char),                     // 元组变体：携带按键字符
+    Resize { width: u32, height: u32 }, // 结构体变体：携带尺寸
+    Paste(String),                      // 元组变体：携带剪贴板内容
 }
 ```
 
@@ -177,7 +175,32 @@ fn main() {
 ```
 :::
 
-### 2. Option\<T\>：安全的"空值"
+### 2. 枚举上的方法
+
+和结构体一样，用 `impl` 块为枚举定义方法：
+
+```rust{5-13}
+enum Message {
+  Quit, Write(String), Move { x: i32, y: i32 },
+}
+
+impl Message {
+  fn describe(&self) -> String {
+    match self {
+      Message::Quit => "退出".into(),
+      Message::Write(s) => format!("写入: {s}"),
+      Message::Move { x, y } => format!("移动到 ({x},{y})"),
+    }
+  }
+}
+
+fn main() {
+  let m = Message::Move { x: 3, y: 5 };
+  println!("{}", m.describe()); // 移动到 (3,5)
+}
+```
+
+### 3. Option\<T\>：安全的"空值"
 
 Rust 没有 `null`。可能"有值"或"无值"的场景用 `Option<T>` 枚举表达——它只有两个变体：`Some(T)` 和 `None`。编译器强制你处理 `None` 分支，从根源上消除空指针异常。
 
@@ -208,30 +231,6 @@ fn main() {
 | `is_some()` / `is_none()` | 判断是 Some 还是 None | `if opt.is_some() { ... }` |
 | `map(f)` | `Some(v)` → `Some(f(v))` | `None` 不变 |
 
-### 3. 枚举上的方法
-
-和结构体一样，用 `impl` 块为枚举定义方法：
-
-```rust{1,5-9}
-enum Message {
-  Quit, Write(String), Move { x: i32, y: i32 },
-}
-
-impl Message {
-  fn describe(&self) -> String {
-    match self {
-      Message::Quit => "退出".into(),
-      Message::Write(s) => format!("写入: {s}"),
-      Message::Move { x, y } => format!("移动到 ({x},{y})"),
-    }
-  }
-}
-
-fn main() {
-  let m = Message::Move { x: 3, y: 5 };
-  println!("{}", m.describe()); // 移动到 (3,5)
-}
-```
 
 ### 4. match 守卫（Guard）
 
