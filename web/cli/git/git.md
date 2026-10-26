@@ -332,7 +332,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git remote add origin <你的远程仓库URL>
-git push -f origin main
+git push -f -u origin main
 ```
 
 ## 五、git pull 详解
