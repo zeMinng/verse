@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // 启用原生插件
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  // 规则分类控制
+  "categories": {
+    "correctness": "error", // 确定bug直接报错
+    "suspicious": "warn", // 可疑代码警告
+    "pedantic": "off", // 过于严格的规则关闭，减少误报
+    "perf": "warn", // 性能问题警告
+    "style": "off", // 样式交给 oxfmt，lint不处理格式
+    "restriction": "warn",
+    "nursery": "off" // 试验性规则关闭
+  },
+  // 运行环境：VitePress同时有Node构建时 + 浏览器前端运行时代码
+  "env": {
+    "builtin": true,
+    "browser": true,
+    "node": true
+  },
+  // 忽略扫描的目录/文件
+  "ignorePatterns": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.min.js",
+    ".vitepress/dist/**",
+    ".vitepress/cache/**"
+  ],
+  "rules": {
+    // ===== TypeScript 相关规则 =====
+    // 文档项目放宽any限制，允许any类型
+    "typescript/no-explicit-any": "off",
+    // 允许 ! 非空断言，vitepress主题代码高频使用
+    "typescript/no-non-null-assertion": "off",
+    // 关闭强制函数显式返回类型，TS自动推断即可，减少样板代码
+    "typescript/explicit-function-return-type": "off",
+
+    // ===== import 导入相关规则 =====
+    // 允许 export default，VitePress侧边栏/导航/主题配置大量使用默认导出
+    "import/no-default-export": "off",
+    // 允许副作用导入 import './style.css'
+    "import/no-unassigned-import": "off",
+    // 允许上层相对导入 import xxx from '../xxx'，Vue组件中很常用
+    "import/no-relative-parent-imports": "off",
+    // 消除<script setup>无顶层导入导出报「分不清脚本/模块」警告
+    "import/unambiguous": "off",
+
+    // ===== 原生ESLint核心规则 =====
+    // 允许 i++ 自增运算符，循环场景很自然
+    "no-plusplus": "off",
+
+    // ===== unicorn 最佳实践风格规则 =====
+    // 不强制Math.hypot，动画绘图代码保持原有写法即可
+    "unicorn/prefer-modern-math-apis": "off",
+
+    // ===== oxc 内置语法限制规则 =====
+    // 允许可选链操作符 ?.，前端开发必备语法
+    "oxc/no-optional-chaining": "off"
+    // 允许 async / await，onMounted等组合式函数会用到
+    // "oxc/no-async-await": "off"
+  }
+}
