@@ -116,128 +116,48 @@
         </linearGradient>
       </defs>
 
-      <!-- Upper ribbon: a deliberately asymmetrical, double-peaked M-like gesture. -->
-      <g class="ribbon ribbon--top">
-        <path :d="topWide" class="ribbon__trail ribbon__trail--back" transform="translate(-9 5)" />
-        <path :d="topWide" class="ribbon__trail ribbon__trail--front" transform="translate(6 -2)" />
-        <path :d="topWide" class="ribbon__edge" />
-        <path :d="topBody" class="ribbon__body" />
-        <path :d="topFace" class="ribbon__face" />
-        <path :d="topCenterline" class="ribbon__hairline" />
-        <path :d="topCenterline" class="ribbon__glint ribbon__glint--top" />
-      </g>
-
-      <!-- Lower ribbon: a smaller V-shaped counter-gesture, with its own light falloff. -->
-      <g class="ribbon ribbon--bottom">
-        <path :d="bottomWide" class="ribbon__trail ribbon__trail--back" transform="translate(-7 4)" />
-        <path :d="bottomWide" class="ribbon__trail ribbon__trail--front" transform="translate(4 -1)" />
-        <path :d="bottomWide" class="ribbon__edge ribbon__edge--bottom" />
-        <path :d="bottomBody" class="ribbon__body ribbon__body--bottom" />
-        <path :d="bottomFace" class="ribbon__face ribbon__face--bottom" />
-        <path :d="bottomCenterline" class="ribbon__hairline ribbon__hairline--bottom" />
-        <path :d="bottomCenterline" class="ribbon__glint ribbon__glint--bottom" />
+      <!-- Bespoke M glyph: asymmetric shoulders, cut terminals and a controlled inner valley. -->
+      <g class="monogram" aria-hidden="true">
+        <path :d="monogramPath" class="monogram__shadow" transform="translate(0 8)" />
+        <path :d="monogramPath" class="monogram__edge" />
+        <path :d="monogramPath" class="monogram__body" />
+        <path :d="monogramPath" class="monogram__face" />
+        <path :d="monogramPath" class="monogram__outline" />
+        <path :d="monogramGlintPath" class="monogram__glint" pathLength="1000" />
       </g>
     </svg>
   </section>
 </template>
 
 <script setup>
-// Generate closed ribbon contours around a cubic-Bezier centerline. The surface is
-// a filled silhouette rather than a thick stroke, so its edges can taper to points.
-const topSegments = [
-  [[170, 294], [221, 294], [242, 283], [261, 250]],
-  [[261, 250], [284, 207], [303, 153], [332, 126]],
-  [[332, 126], [353, 106], [377, 108], [394, 133]],
-  [[394, 133], [418, 170], [432, 239], [460, 263]],
-  [[460, 263], [479, 280], [498, 278], [517, 259]],
-  [[517, 259], [544, 232], [566, 178], [591, 140]],
-  [[591, 140], [612, 109], [634, 104], [652, 125]],
-  [[652, 125], [675, 151], [680, 221], [701, 268]],
-  [[701, 268], [714, 297], [731, 307], [750, 289]],
-  [[750, 289], [770, 269], [789, 237], [815, 211]],
-]
+// Custom editorial-tech M. The slightly raised right shoulder, clipped outer
+// terminals, and broad negative space create a specific silhouette without
+// adding a separate symbol or decorative geometry.
+const monogramPath = [
+  'M 270 390',
+  'L 270 174',
+  'L 290 152',
+  'L 319 152',
+  'Q 333 152 345 166',
+  'L 488 292',
+  'Q 500 302 512 292',
+  'L 646 148',
+  'Q 660 135 678 135',
+  'L 706 135',
+  'L 728 157',
+  'L 728 390',
+  'L 667 390',
+  'L 667 203',
+  'L 520 337',
+  'Q 500 355 480 337',
+  'L 331 203',
+  'L 331 390',
+  'Z',
+].join(' ')
 
-const bottomSegments = [
-  [[387, 305], [414, 302], [428, 311], [442, 331]],
-  [[442, 331], [460, 356], [477, 386], [493, 389]],
-  [[493, 389], [509, 388], [527, 358], [545, 334]],
-  [[545, 334], [562, 313], [577, 302], [606, 302]],
-]
-
-function cubicPoint(segment, t) {
-  const [p0, p1, p2, p3] = segment
-  const u = 1 - t
-  const a = u * u * u
-  const b = 3 * u * u * t
-  const c = 3 * u * t * t
-  const d = t * t * t
-  return [
-    a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0],
-    a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1],
-  ]
-}
-
-function sampleSegments(segments) {
-  const points = []
-  segments.forEach((segment, index) => {
-    const polygonLength = Math.hypot(segment[1][0] - segment[0][0], segment[1][1] - segment[0][1])
-      + Math.hypot(segment[2][0] - segment[1][0], segment[2][1] - segment[1][1])
-      + Math.hypot(segment[3][0] - segment[2][0], segment[3][1] - segment[2][1])
-    const steps = Math.max(18, Math.ceil(polygonLength / 3.5))
-    for (let i = index === 0 ? 0 : 1; i <= steps; i += 1) {
-      points.push(cubicPoint(segment, i / steps))
-    }
-  })
-  return points
-}
-
-function fmt(point) {
-  return `${point[0].toFixed(2)},${point[1].toFixed(2)}`
-}
-
-function centerlinePath(segments) {
-  return segments.map((segment, index) => {
-    const [p0, p1, p2, p3] = segment
-    return `${index === 0 ? `M ${fmt(p0)}` : ''} C ${fmt(p1)} ${fmt(p2)} ${fmt(p3)}`
-  }).join(' ')
-}
-
-function makeRibbonOutline(segments, halfWidth, phase = 0, scale = 1, offset = 0) {
-  const points = sampleSegments(segments)
-  const left = []
-  const right = []
-  const denominator = Math.max(1, points.length - 1)
-
-  points.forEach((point, index) => {
-    const previous = points[Math.max(0, index - 1)]
-    const next = points[Math.min(points.length - 1, index + 1)]
-    const dx = next[0] - previous[0]
-    const dy = next[1] - previous[1]
-    const length = Math.hypot(dx, dy) || 1
-    const nx = -dy / length
-    const ny = dx / length
-    const t = index / denominator
-    const taper = Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.48)
-    const ripple = 0.91 + 0.09 * Math.sin(t * Math.PI * 4.4 + phase)
-    const base = halfWidth * scale * taper * ripple
-    const leftWidth = base * (0.90 + 0.10 * Math.sin(t * Math.PI * 3.1 + phase))
-    const rightWidth = base * (0.91 + 0.09 * Math.cos(t * Math.PI * 2.7 + phase * 0.8))
-    left.push([point[0] + nx * (leftWidth + offset), point[1] + ny * (leftWidth + offset)])
-    right.push([point[0] - nx * (rightWidth - offset), point[1] - ny * (rightWidth - offset)])
-  })
-
-  const outline = left.concat(right.reverse())
-  return `M ${fmt(outline[0])} ${outline.slice(1).map((point) => `L ${fmt(point)}`).join(' ')} Z`
-}
-
-const topWide = makeRibbonOutline(topSegments, 9.2, 0.25)
-const topBody = makeRibbonOutline(topSegments, 7.25, 1.05)
-const topFace = makeRibbonOutline(topSegments, 4.55, 2.3, 1, 1.25)
-const topCenterline = centerlinePath(topSegments)
-const bottomWide = makeRibbonOutline(bottomSegments, 8.1, 1.1)
-const bottomBody = makeRibbonOutline(bottomSegments, 6.45, 2.05)
-const bottomFace = makeRibbonOutline(bottomSegments, 4.0, 0.5, 1, 0.9)
-const bottomCenterline = centerlinePath(bottomSegments)
+// The highlight follows the actual glyph contour, so motion feels like a
+// moving reflection on a finished object instead of a generic glowing effect.
+const monogramGlintPath = monogramPath
 </script>
 
 <style scoped>
@@ -346,84 +266,65 @@ const bottomCenterline = centerlinePath(bottomSegments)
   mix-blend-mode: multiply;
 }
 
-.ribbon path {
-  stroke: none;
-  stroke-linejoin: round;
+.monogram {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: monogram-float 7.2s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }
 
-.ribbon__trail--back {
-  fill: #3d324f;
-  opacity: 0.24;
+.monogram path {
+  stroke-linejoin: miter;
+  stroke-linecap: round;
 }
 
-.ribbon__trail--front {
-  fill: #8270b1;
-  opacity: 0.11;
+.monogram__shadow {
+  fill: #322b48;
+  opacity: 0.2;
 }
 
-.ribbon__edge {
-  fill: url(#edge-top);
-  opacity: 0.78;
+.monogram__edge {
+  fill: none;
+  stroke: url(#edge-top);
+  stroke-width: 4;
+  opacity: 0.9;
 }
 
-.ribbon__edge--bottom {
-  fill: url(#edge-bottom);
-  opacity: 0.8;
-}
-
-.ribbon__body {
+.monogram__body {
   fill: url(#metal-top);
   opacity: 0.98;
 }
 
-.ribbon__body--bottom {
-  fill: url(#metal-bottom);
-}
-
-.ribbon__face {
+.monogram__face {
   fill: url(#face-top);
-  opacity: 0.73;
+  opacity: 0.2;
 }
 
-.ribbon__face--bottom {
-  fill: url(#face-bottom);
-  opacity: 0.72;
-}
-
-.ribbon__hairline {
+.monogram__outline {
   fill: none;
-  stroke: rgb(255 255 255 / 60%);
-  stroke-width: 1.05;
+  stroke: rgb(255 255 255 / 48%);
+  stroke-width: 0.85;
+  opacity: 0.48;
+}
+
+.monogram__glint {
+  fill: none;
+  stroke: rgb(255 255 255 / 94%);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
   stroke-linecap: round;
+  stroke-dasharray: 48 952;
+  stroke-dashoffset: 1000;
   opacity: 0.7;
+  animation: monogram-glint-travel 8.8s linear infinite;
 }
 
-.ribbon__hairline--bottom {
-  opacity: 0.64;
+@keyframes monogram-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3.5px) rotate(-0.18deg); }
 }
 
-.ribbon__glint {
-  fill: none;
-  stroke: rgb(255 255 255 / 96%);
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-dasharray: 42 1400;
-  stroke-dashoffset: 1442;
-  opacity: 0.68;
-  animation: glint-travel 10.5s linear infinite;
-}
-
-.ribbon__glint--bottom {
-  stroke-width: 1.3;
-  stroke-dasharray: 24 400;
-  stroke-dashoffset: 424;
-  opacity: 0.58;
-  animation-duration: 7.8s;
-  animation-delay: -2.6s;
-}
-
-@keyframes glint-travel {
-  from { stroke-dashoffset: 1442; }
+@keyframes monogram-glint-travel {
+  from { stroke-dashoffset: 1000; }
   to { stroke-dashoffset: 0; }
 }
 
@@ -434,10 +335,11 @@ const bottomCenterline = centerlinePath(bottomSegments)
 
 @media (prefers-reduced-motion: reduce) {
   .verse-hero__ambient,
-  .ribbon__glint {
+  .monogram,
+  .monogram__glint {
     animation: none;
   }
-  .ribbon__glint {
+  .monogram__glint {
     display: none;
   }
 }
