@@ -8,23 +8,15 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 /**
- * 「流体光带」：一条银白色的光带，在 V 与 M 之间平滑流动变形。
- *
- * V 是 verse，M 是 zeMinng。光带始终是一条连续的线：静置数秒后，轮廓像水一样
- * 缓缓流入另一个字母，再静置、再流回。光带以一条闭合路径一次填充，边缘平滑
- * 无接缝；骨架用 Catmull-Rom 曲线，拐角圆转、笔画带自然弧线。一道白色高光
- * 沿带身往返滑动，变形时身后拖着很淡的残影。
- *
- * 材质保持克制：银白为主体，边缘只留一圈贴身的冷紫细光与极淡的外晕，紫色
- * 始终让位给银色高光。骨架之外，笔画宽度还叠加了「书写感」：每个字母带一组
- * 笔锋节点（V 顶部厚、谷底细；M 外侧竖画厚、中部细），随形变一起插值；两端
- * 收口成圆润的墨点，形变时带身像液体一样泛起细浪。
+ * Editorial monogram: a custom, high-contrast V/M glyph rather than a glowing tube.
+ * The letters retain a shared seven-point topology for morphing, but selected anchors
+ * are deliberately sharpened to create authored corners, asymmetric tension and
+ * tapered terminals. A restrained accent hairline supplies the only metallic detail.
  */
 
 const HOLD = 5.2 // 字母静置时长
 const MORPH = 3.2 // 变形时长
-const SAMPLES = 320 // 光带采样数
-const TAU = Math.PI * 2
+const SAMPLES = 300 // 定制字形的轮廓采样数
 
 const rootRef = ref(null)
 const canvasRef = ref(null)
@@ -35,33 +27,37 @@ const smooth = (t) => t * t * (3 - 2 * t)
 const easeInOutCubic = (value) => (value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2)
 const withAlpha = (rgb, alpha) => `rgb(${rgb} / ${clamp(alpha, 0, 1).toFixed(3)})`
 
-// 两个字母的骨架：同一条 7 点折线，点对点插值即可完成形变。
-// width 是笔画宽度节点（笔锋对比），随骨架一同插值：
-// V 顶部厚、谷底细；M 外侧竖画厚、中部细。
+// 两个字母共享七个锚点，位置、拐角性格和笔画粗细一起插值。
 const LETTERS = {
   V: {
+    // Endpoints are intentionally asymmetric; the lower vertex is narrow and decisive.
     points: [
-      [0.1, 1.0],
-      [0.28, 0.52],
-      [0.44, 0.12],
-      [0.5, 0.05],
-      [0.56, 0.12],
-      [0.72, 0.52],
-      [0.9, 1.0],
+      [0.035, 1.0],
+      [0.225, 0.58],
+      [0.425, 0.14],
+      [0.5, 0.025],
+      [0.575, 0.14],
+      [0.79, 0.61],
+      [0.965, 1.0],
     ],
-    width: [1.3, 1.12, 0.7, 1.12, 1.3],
+    // Higher values preserve a deliberate corner instead of rounding it away.
+    sharpness: [0.9, 0.12, 0.18, 0.98, 0.18, 0.12, 0.9],
+    // High contrast: broader outer strokes, narrow meeting point.
+    width: [1.5, 0.82, 0.58, 0.92, 1.42],
   },
   M: {
     points: [
-      [0.05, 0.05],
-      [0.12, 0.56],
-      [0.19, 1.0],
-      [0.5, 0.24],
-      [0.81, 1.0],
-      [0.88, 0.56],
-      [0.95, 0.05],
+      [0.035, 0.035],
+      [0.105, 0.55],
+      [0.185, 0.985],
+      [0.5, 0.27],
+      [0.805, 1.0],
+      [0.89, 0.53],
+      [0.965, 0.04],
     ],
-    width: [1.2, 1.0, 0.8, 1.0, 1.2],
+    sharpness: [0.9, 0.1, 0.96, 0.98, 0.96, 0.1, 0.9],
+    // Narrow rising strokes contrast with a heavier outer silhouette.
+    width: [1.38, 0.68, 1.12, 0.68, 1.45],
   },
 }
 
@@ -78,7 +74,6 @@ let clock = 0
 let lastTime = 0
 let layout = null
 let palette = null
-let sprites = null
 let grain = null
 let grainPattern = null
 let motionQuery = null
@@ -102,7 +97,6 @@ function createPathBuffers() {
   }
 }
 const path = createPathBuffers()
-const ghostPath = createPathBuffers()
 
 // 明暗主题由 VitePress 的 data-theme 或 .dark 类决定，两者都认
 function isDarkMode() {
@@ -124,31 +118,6 @@ function readPalette() {
     ribbon: read('--verse-ribbon-rgb', '206 215 238'),
     white: read('--verse-white-rgb', '232 234 255'),
     shadow: read('--verse-shadow-rgb', '0 0 0'),
-  }
-}
-
-// 柔光贴图：脉冲光晕与纸面的灯光
-function createGlowSprite(rgb) {
-  const sprite = document.createElement('canvas')
-  sprite.width = 64
-  sprite.height = 64
-  const spriteCtx = sprite.getContext('2d')
-  if (!spriteCtx) return sprite
-  const gradient = spriteCtx.createRadialGradient(32, 32, 0, 32, 32, 32)
-  gradient.addColorStop(0, withAlpha(rgb, 1))
-  gradient.addColorStop(0.14, withAlpha(rgb, 0.78))
-  gradient.addColorStop(0.4, withAlpha(rgb, 0.14))
-  gradient.addColorStop(1, withAlpha(rgb, 0))
-  spriteCtx.fillStyle = gradient
-  spriteCtx.fillRect(0, 0, 64, 64)
-  return sprite
-}
-
-function buildSprites(current) {
-  if (!current) return null
-  return {
-    white: createGlowSprite(current.white),
-    accent: createGlowSprite(current.accent),
   }
 }
 
@@ -224,7 +193,6 @@ function ensureLayout() {
   if (!ctx) return false
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-  sprites = buildSprites(palette)
   rebuildGrain()
   layout = {
     cx: width * 0.5,
@@ -257,18 +225,20 @@ function startMorphTo(target) {
   morph.active = true
 }
 
-// 把字母骨架展开成平滑采样路径：控制点插值 → Catmull-Rom 采样 → 弧长归一 → 平滑法线
+// 将字母锚点展开成路径：锚点插值 → 定制曲线采样 → 弧长归一 → 法线计算
 function samplePath(morphValue, out) {
   const a = LETTERS.V.points
   const b = LETTERS.M.points
   const { cx, cy, letterW, letterH } = layout
 
-  // 点对点插值控制点
+  // Match the anchors one by one, while interpolating corner character as well as position.
   const px = []
   const py = []
+  const corner = []
   for (let i = 0; i < a.length; i++) {
     px.push(a[i][0] + (b[i][0] - a[i][0]) * morphValue)
     py.push(a[i][1] + (b[i][1] - a[i][1]) * morphValue)
+    corner.push(lerp(LETTERS.V.sharpness[i], LETTERS.M.sharpness[i], morphValue))
   }
 
   // 段长 → 采样数
@@ -300,19 +270,17 @@ function samplePath(morphValue, out) {
       const f = k / (n - 1)
       const f2 = f * f
       const f3 = f2 * f
-      // Catmull-Rom 内联计算，避免逐点分配对象
-      const qx =
-        0.5 *
-        (2 * p1x +
-          (-p0x + p2x) * f +
-          (2 * p0x - 5 * p1x + 4 * p2x - p3x) * f2 +
-          (-p0x + 3 * p1x - 3 * p2x + p3x) * f3)
-      const qy =
-        0.5 *
-        (2 * p1y +
-          (-p0y + p2y) * f +
-          (2 * p0y - 5 * p1y + 4 * p2y - p3y) * f2 +
-          (-p0y + 3 * p1y - 3 * p2y + p3y) * f3)
+      // Corner-aware Hermite curve: selected anchors can stay pointed instead of becoming round.
+      const h00 = 2 * f3 - 3 * f2 + 1
+      const h10 = f3 - 2 * f2 + f
+      const h01 = -2 * f3 + 3 * f2
+      const h11 = f3 - f2
+      const m1x = (p2x - p0x) * 0.5 * (1 - corner[i])
+      const m1y = (p2y - p0y) * 0.5 * (1 - corner[i])
+      const m2x = (p3x - p1x) * 0.5 * (1 - corner[i + 1])
+      const m2y = (p3y - p1y) * 0.5 * (1 - corner[i + 1])
+      const qx = h00 * p1x + h10 * m1x + h01 * p2x + h11 * m2x
+      const qy = h00 * p1y + h10 * m1y + h01 * p2y + h11 * m2y
       out.xs[index] = cx + (qx - 0.5) * letterW
       out.ys[index] = cy + (0.5 - qy) * letterH
       index++
@@ -341,7 +309,7 @@ function samplePath(morphValue, out) {
   }
 }
 
-// 宽度节点插值：把笔锋对比沿弧长拉成平滑曲线
+// 宽度节点插值：把排印式的粗细对比沿弧长拉成平滑曲线
 function profileAt(nodes, t) {
   const n = nodes.length - 1
   const pos = clamp(t, 0, 1) * n
@@ -349,14 +317,15 @@ function profileAt(nodes, t) {
   return lerp(nodes[i], nodes[i + 1], smooth(pos - i))
 }
 
-// 逐点宽度：收细 × 笔锋对比 × 形变细浪 × 整体呼吸，每帧只算一次供全部填充复用
+// 逐点宽度：端点收锋 × 粗细对比 × 极轻的整体呼吸
 function computeWidths(out, morphValue) {
-  const base = layout.letterH * 0.022
-  const breathe = 0.94 + 0.06 * Math.sin(clock * 0.7)
-  const ripple = morph.active ? 0.09 * Math.sin(clock * 4.6) : 0
+  const base = layout.letterH * 0.027
+  const breathe = 0.985 + 0.015 * Math.sin(clock * 0.52)
+  const ripple = morph.active ? 0.025 * Math.sin(clock * 3.8) : 0
   for (let i = 0; i < out.count; i++) {
     const t = out.ts[i]
-    const taper = 0.78 + 0.22 * Math.sin(Math.PI * t)
+    // Cut terminals taper almost to a point; the silhouette, not a glow, defines the glyph.
+    const taper = 0.12 + 0.88 * Math.pow(Math.max(0, Math.sin(Math.PI * t)), 0.32)
     const pv = profileAt(LETTERS.V.width, t)
     const pm = profileAt(LETTERS.M.width, t)
     const contrast = pv + (pm - pv) * morphValue
@@ -364,12 +333,12 @@ function computeWidths(out, morphValue) {
   }
 }
 
-// 能量高光位置：沿光带往返流动
+// 细光沿字形往返移动
 function pulsePosition() {
   return 1 - Math.abs(2 * ((clock * 0.11) % 1) - 1)
 }
 
-// 一条闭合路径一次填充：上下边缘各走一遍，平滑无接缝
+// 一条闭合轮廓一次填充：上、下边缘合成定制笔画
 function fillRibbon(out, widthScale, alphaScale, color) {
   const { xs, ys, nx, ny, ws, count } = out
   ctx.globalAlpha = alphaScale
@@ -389,20 +358,20 @@ function fillRibbon(out, widthScale, alphaScale, color) {
   ctx.fill()
 }
 
-// 高光：一小段白色亮带沿光带滑动，叠加发光
+// 高光：一小段克制的白色细光沿字形扫过
 function drawPulseBand(out, pulse) {
-  const half = 0.11
+  const half = 0.035
   const t0 = Math.max(0, pulse - half)
   const t1 = Math.min(1, pulse + half)
   const { xs, ys, ts, nx, ny, ws, count } = out
   ctx.save()
   ctx.globalCompositeOperation = 'lighter'
-  ctx.fillStyle = withAlpha(palette.white, 0.85)
+  ctx.fillStyle = withAlpha(palette.white, 0.7)
   for (let i = 0; i < count - 1; i++) {
     const tm = (ts[i] + ts[i + 1]) / 2
     if (tm < t0 || tm > t1) continue
     const offset = (tm - pulse) / half
-    ctx.globalAlpha = Math.exp(-offset * offset) * 0.5
+    ctx.globalAlpha = Math.exp(-offset * offset) * 0.24
     const w0 = ws[i]
     const w1 = ws[i + 1]
     ctx.beginPath()
@@ -416,62 +385,38 @@ function drawPulseBand(out, pulse) {
   ctx.restore()
 }
 
-// 高光处的光晕：白色为主、紫晕仅作点缀
-function drawPulseGlow(out, pulse) {
-  if (!sprites) return
-  const index = clamp(Math.round(pulse * (out.count - 1)), 0, out.count - 1)
-  const x = out.xs[index]
-  const y = out.ys[index]
-  const w = out.ws[index]
-  const accentSize = layout.letterH * 0.12
-  const whiteSize = Math.max(w * 2.6, layout.letterH * 0.055)
-  ctx.globalAlpha = palette.dark ? 0.18 : 0.12
-  ctx.drawImage(sprites.accent, x - accentSize / 2, y - accentSize / 2, accentSize, accentSize)
-  ctx.globalAlpha = palette.dark ? 0.6 : 0.5
-  ctx.drawImage(sprites.white, x - whiteSize / 2, y - whiteSize / 2, whiteSize, whiteSize)
-  // 白色亮核
-  ctx.globalAlpha = 0.9
-  ctx.fillStyle = withAlpha(palette.white, 1)
+// 沿笔画内侧绘制一条极细的刻线，补充排印感
+function drawEditorialEdge(out) {
+  const { xs, ys, nx, ny, ws, count } = out
+  if (count < 2) return
+  ctx.save()
+  ctx.globalAlpha = palette.dark ? 0.32 : 0.22
+  ctx.strokeStyle = withAlpha(palette.accent, 1)
+  ctx.lineWidth = 0.7
+  ctx.lineCap = 'butt'
+  ctx.lineJoin = 'miter'
   ctx.beginPath()
-  ctx.arc(x, y, Math.max(1.2, w * 0.55), 0, TAU)
-  ctx.fill()
-  ctx.globalAlpha = 1
-}
-
-// 两端收口：圆润的墨点 + 柔光
-function drawCaps(out, bodyColor) {
-  if (!sprites) return
-  const last = out.count - 1
-  const caps = [
-    [out.xs[0], out.ys[0], out.ws[0]],
-    [out.xs[last], out.ys[last], out.ws[last]],
-  ]
-  for (const [x, y, w] of caps) {
-    const r = Math.max(2, w * 0.95)
-    const halo = r * 3.4
-    ctx.globalAlpha = palette.dark ? 0.4 : 0.3
-    ctx.drawImage(sprites.white, x - halo / 2, y - halo / 2, halo, halo)
-    ctx.globalAlpha = 1
-    ctx.fillStyle = bodyColor
-    ctx.beginPath()
-    ctx.arc(x, y, r, 0, TAU)
-    ctx.fill()
-    ctx.fillStyle = withAlpha(palette.white, palette.dark ? 0.9 : 0.75)
-    ctx.beginPath()
-    ctx.arc(x, y, r * 0.5, 0, TAU)
-    ctx.fill()
+  for (let i = 0; i < count; i++) {
+    // Stay inside the silhouette so this reads as a fine engraved edge, not a second stroke.
+    const inset = ws[i] * 0.48
+    const x = xs[i] + nx[i] * inset
+    const y = ys[i] + ny[i] * inset
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
   }
+  ctx.stroke()
+  ctx.restore()
 }
 
-// 背景：一晕极淡的品牌色，托在字母后方
+// 背景：保留非常淡的品牌色，主体仍由字形承担
 function drawAmbient(clockValue) {
   const breathe = 1 + Math.sin(clockValue * 0.35) * 0.06
   const x = layout.cx
   const y = layout.cy - layout.letterH * 0.1
   const radius = Math.max(layout.letterH * 1.7, Math.min(width, height) * 0.5) * breathe
   const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius)
-  gradient.addColorStop(0, withAlpha(palette.accent, palette.dark ? 0.05 : 0.03))
-  gradient.addColorStop(0.55, withAlpha(palette.accent, palette.dark ? 0.02 : 0.012))
+  gradient.addColorStop(0, withAlpha(palette.accent, palette.dark ? 0.025 : 0.018))
+  gradient.addColorStop(0.55, withAlpha(palette.accent, palette.dark ? 0.009 : 0.006))
   gradient.addColorStop(1, withAlpha(palette.accent, 0))
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
@@ -488,7 +433,7 @@ function drawVignette() {
     radius,
   )
   gradient.addColorStop(0, withAlpha(palette.shadow, 0))
-  gradient.addColorStop(1, withAlpha(palette.shadow, palette.dark ? 0.14 : 0.04))
+  gradient.addColorStop(1, withAlpha(palette.shadow, palette.dark ? 0.09 : 0.025))
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, width, height)
 }
@@ -503,7 +448,7 @@ function drawGrain() {
   ctx.restore()
 }
 
-// 指针像一盏小灯，照在纸上
+// 指针仅带来非常轻的纸面亮度变化
 function drawSpotlight() {
   if (pointer.ease < 0.01) return
   const radius = Math.min(width, height) * 0.52
@@ -514,7 +459,7 @@ function drawSpotlight() {
   ctx.fillRect(0, 0, width, height)
 }
 
-// 每帧一次性算好的数据：形变进度、残影开关、高光位置
+// 每帧一次性算好的数据：形变进度与细光位置
 function currentFrame() {
   return {
     u: advanceMorph(),
@@ -545,27 +490,11 @@ function renderFrame(f) {
     ctx.restore()
   }
 
-  // 轻微残影：形变时身后拖三道渐隐的旧姿态
-  if (f.morphing) {
-    const sign = morph.to > morph.from ? -1 : 1
-    for (let k = 0; k < 3; k++) {
-      const ghostU = clamp(f.u + sign * (0.05 + k * 0.055), 0, 1)
-      samplePath(ghostU, ghostPath)
-      computeWidths(ghostPath, ghostU)
-      fillRibbon(ghostPath, 0.9, (palette.dark ? 0.1 : 0.08) * (1 - k * 0.3), bodyColor)
-    }
-  }
-
-  // 冷紫边缘高光：一圈贴身的细光 + 极淡外晕，克制地衬托银色主体
-  fillRibbon(path, 1.45, palette.dark ? 0.12 : 0.09, withAlpha(palette.accent, 1))
-  fillRibbon(path, 2.8, palette.dark ? 0.05 : 0.035, withAlpha(palette.accent, 1))
-
-  // 银白光带本体
-  fillRibbon(path, 1, palette.dark ? 0.95 : 0.9, bodyColor)
-
-  drawCaps(path, bodyColor)
+  // A single, solid silhouette anchors the design. No ghost stack or broad outer glow.
+  fillRibbon(path, 1.04, palette.dark ? 0.12 : 0.08, withAlpha(palette.accent, 1))
+  fillRibbon(path, 1, palette.dark ? 0.98 : 0.96, bodyColor)
+  drawEditorialEdge(path)
   drawPulseBand(path, f.pulse)
-  drawPulseGlow(path, f.pulse)
   drawSpotlight()
 }
 
@@ -639,7 +568,6 @@ function handleMotionChange(event) {
 
 function handleThemeChange() {
   palette = readPalette()
-  sprites = buildSprites(palette)
   rebuildGrain()
   if (!running) renderFrame(currentFrame())
 }
@@ -697,10 +625,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .verse-hero {
-  --verse-accent: #a5a6ff;
-  --verse-accent-rgb: 165 166 255;
-  --verse-ribbon-rgb: 206 215 238;
-  --verse-white-rgb: 232 234 255;
+  --verse-accent: #c5a6ff;
+  --verse-accent-rgb: 197 166 255;
+  --verse-ribbon-rgb: 239 236 229;
+  --verse-white-rgb: 255 251 243;
   --verse-shadow-rgb: 0 0 0;
 
   position: relative;
@@ -714,20 +642,21 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(148 163 184 / 10%);
   border-radius: 24px;
   background:
-    radial-gradient(ellipse at 50% 46%, rgb(90 108 180 / 7%), transparent 58%),
-    linear-gradient(145deg, rgb(22 28 44 / 32%), rgb(12 17 28 / 12%));
+    radial-gradient(ellipse at 50% 46%, rgb(100 82 150 / 4%), transparent 62%),
+    linear-gradient(145deg, rgb(19 20 27 / 98%), rgb(25 26 34 / 96%));
 }
 
 /* 浅色主题：用 :is() 声明祖先条件，才能在 scoped 样式里保留选择器 */
 .verse-hero:is(html:not([data-theme='dark']):not(.dark) *) {
-  --verse-accent: #7478db;
-  --verse-accent-rgb: 116 120 219;
-  --verse-ribbon-rgb: 96 106 138;
-  --verse-shadow-rgb: 56 68 110;
-  border-color: rgb(100 116 139 / 15%);
+  --verse-accent: #7655a8;
+  --verse-accent-rgb: 118 85 168;
+  --verse-ribbon-rgb: 35 36 43;
+  --verse-white-rgb: 252 249 242;
+  --verse-shadow-rgb: 25 25 31;
+  border-color: rgb(37 36 43 / 13%);
   background:
-    radial-gradient(ellipse at 50% 46%, rgb(106 119 209 / 9%), transparent 57%),
-    linear-gradient(145deg, rgb(248 250 255 / 94%), rgb(239 243 250 / 78%));
+    radial-gradient(ellipse at 50% 46%, rgb(118 85 168 / 5%), transparent 60%),
+    linear-gradient(145deg, rgb(247 245 240 / 98%), rgb(237 234 227 / 96%));
 }
 
 .verse-hero__canvas {
