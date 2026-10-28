@@ -28,6 +28,6 @@
     "@voidzero-dev/vitepress-theme": "^5.0.7",
     "oxfmt": "^0.73.0",
     "oxlint": "^1.88.0",
-    "vitepress": "^2.0.0-alpha.20"
+    "vitepress": "^2.0.0-alpha.21"
   }
 }
