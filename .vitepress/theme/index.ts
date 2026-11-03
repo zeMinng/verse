@@ -2,6 +2,7 @@ import type { Theme } from 'vitepress'
 import BaseTheme, { themeContextKey } from '@voidzero-dev/vitepress-theme'
 import { Watermark } from './components/Watermark'
 import { Links, ResourceLinks } from './components/Links'
+import DepsTable from './components/DepsTable.vue'
 
 import logoDark from '/logo_w_b.svg'
 import logoLight from '/logo_w_w.svg'
@@ -22,6 +23,7 @@ export default {
     app.component('Watermark', Watermark)
     app.component('Links', Links)
     app.component('ResourceLinks', ResourceLinks)
+    app.component('DepsTable', DepsTable)
     // VoidZeroTheme.enhanceApp(ctx)
   },
 } satisfies Theme

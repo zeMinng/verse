@@ -7,6 +7,7 @@ const nav: NavItem[] = [
     text: '关于',
     items: [
       { text: '关于作者', link: '/about' },
+      { text: '依赖清单', link: '/deps' },
       // { text: '相关作品', link: '/VPNavBarPage/works/' },
     ],
   },
