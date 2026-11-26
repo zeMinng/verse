@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Asia/Shanghai",
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "schedule": ["before 7am"],
+  "rangeStrategy": "pin",
+  "separateMajorMinor": true,
+  "separateMultipleMajor": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 3,
+  "packageRules": [
+    {
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["vitepress", "@voidzero-dev/vitepress-theme"],
+      "groupName": "vitepress 生态",
+      "automerge": false
+    }
+  ]
+}

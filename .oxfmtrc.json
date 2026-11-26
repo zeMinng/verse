@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  // 单行最大字符宽度（线宽限制）
+  "printWidth": 100,
+  // 每级缩进空格数
+  "tabWidth": 2,
+  // 是否使用 tab 制表符代替空格缩进
+  "useTabs": false,
+  // 语句末尾添加分号
+  "semi": false,
+  // 字符串优先使用单引号
+  "singleQuote": true,
+  // 是否自动排序 package.json 字段
+  "sortPackageJson": false,
+  // 对象属性引号：仅必要时添加引号
+  "quoteProps": "as-needed",
+  // JSX 属性使用单引号
+  "jsxSingleQuote": false,
+  // 多行对象/数组末尾添加尾随逗号
+  "trailingComma": "all",
+  // 对象大括号内侧保留空格 { foo: bar }
+  "bracketSpacing": true,
+  // 多行对象右大括号是否跟最后一个属性同行
+  "bracketSameLine": false,
+  // 箭头函数参数始终加括号 (x) => {}
+  "arrowParens": "always",
+  // 换行符：lf = unix换行(\n)，跨项目协作推荐
+  "endOfLine": "lf",
+  // 文件末尾自动插入空行
+  "insertFinalNewline": true,
+  // 对象换行策略：preserve 保留源码原本换行
+  "objectWrap": "preserve",
+  // JSX 标签每行只写一个属性
+  "singleAttributePerLine": false,
+  // 是否格式化嵌入的代码块
+  "overrides": [
+    {
+      "files": ["*.md", "*.mdx"],
+      "options": {
+        "embeddedLanguageFormatting": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "node_modules/**",
+    "*.min.js",
+    ".vitepress/cache/**",
+    ".vitepress/dist/**"
+  ]
+}
