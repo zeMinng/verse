@@ -85,6 +85,48 @@ System.out.println(sj2); // [x, y]
 | 循环中大量拼接或反转              | StringBuilder |
 | 拼接列表并加前后缀（如 `[x, y]`） | StringJoiner  |
 
+### 3. 包装类
+
+8 种基本类型各有一个包装类：Byte、Short、Integer、Long、Float、Double、Character、Boolean，都在 java.lang 下。它们是引用类型，默认值是 null，能进集合、能当泛型参数，`List<int>` 编译不过，`List<Integer>` 可以。
+
+| 基本类型 | 包装类    | 缓存范围             |
+| -------- | --------- | -------------------- |
+| byte     | Byte      | -128 ~ 127（全缓存） |
+| short    | Short     | -128 ~ 127           |
+| int      | Integer   | -128 ~ 127           |
+| long     | Long      | -128 ~ 127           |
+| float    | Float     | 不缓存               |
+| double   | Double    | 不缓存               |
+| char     | Character | 0 ~ 127              |
+| boolean  | Boolean   | 两个常量，全缓存     |
+
+**自动装箱 / 拆箱**：赋值、传参、参与运算时，编译器会自动补上装箱和拆箱调用。
+
+```java
+Integer i = 100;   // 装箱 → Integer.valueOf(100)
+int j = i;         // 拆箱 → i.intValue()
+```
+
+::: warning ⚠️ 两个坑
+**1. == 比包装类靠不住。** Integer.valueOf 缓存了 −128~127，区间内是同一个对象，超出范围则是两个新对象。
+
+```java
+Integer a = 127, b = 127;
+System.out.println(a == b);       // true（同一个缓存对象）
+
+Integer c = 128, d = 128;
+System.out.println(c == d);       // false（两个对象，比的是地址）
+```
+
+判等统一用 equals 或 Objects.equals；new Integer(100) 不走缓存且已废弃，改用 valueOf。
+
+**2. null 拆箱直接 NPE。** 把 null 的包装类赋给基本类型变量就会抛异常；三元表达式里包装类和基本类型混用时同理，因为整个表达式会被提升为 int。
+:::
+
+**常用方法**：Integer.parseInt 把字符串转成 int，格式非法抛 NumberFormatException；valueOf 返回包装对象并走缓存；Integer.compare 用于防溢出比较，别写 a - b；MAX_VALUE 与 MIN_VALUE 是范围常量；Character.isDigit 判断数字字符。
+
+包装类不可变，i++ 实际是「拆箱 → 加 1 → 装箱」，所以循环累加这类高频场景优先用基本类型。
+
 ## 二、运算符与转换
 
 在 Java 中，运算不仅仅是算结果，还涉及类型转换。
@@ -407,15 +449,13 @@ public class Animal {
 
 ## 八、枚举: enum
 
-枚举（`enum`）用来表示**一组固定的常量**：季节、订单状态、性别、星期。它是 JDK 5 引入的**特殊类**（不是基本数据类型），所以前面几章讲的类、构造器、接口规则在这里同样生效。
+枚举（enum，JDK 5 起）用来表示一组固定的常量：季节、订单状态、星期。它是特殊的类，不是基本数据类型——常量在类加载时一次性创建，不能 new、构造器强制 private，所以天然单例、线程安全。
 
 ### 1. 定义与使用
 
-枚举常量默认就是 `public static final`，**不能 `new`，构造器强制为 `private`**。
-
 ```java
 public enum Season {
-  SPRING, SUMMER, AUTUMN, WINTER  // 常量列表：全大写、逗号分隔
+  SPRING, SUMMER, AUTUMN, WINTER  // 全大写、逗号分隔
 }
 
 // 使用：直接类名.常量，不需要 new
@@ -424,23 +464,22 @@ System.out.println(s);  // SPRING
 ```
 
 ::: tip 💡 分号规则
-常量列表**后面还有成员（字段、构造器、方法）时，必须加分号** `;`；只有常量则可以省略。这个分号是新手最常见的编译报错来源。
+常量列表后面还有成员（字段、构造器、方法）时，必须加分号；只有常量才可以省略，这是最常见的编译报错来源。
 :::
 
-**常用方法**（编译器自动生成，不用手写）：
+常用方法由编译器自动生成：
 
-| 方法                   | 作用                          | 备注                                                  |
-| ---------------------- | ----------------------------- | ----------------------------------------------------- |
-| `values()`             | 返回全部常量的数组            | 顺序与声明顺序一致                                    |
-| `valueOf(String name)` | 按名字取常量                  | 名字不存在或大小写不符，抛 `IllegalArgumentException` |
-| `name()`               | 返回常量名（字符串）          | 就是声明时的字面量                                    |
-| `ordinal()`            | 返回序号，从 0 开始           | **只适合内部排序，不要存进数据库**                    |
-| `compareTo(e)`         | 按 `ordinal` 比较，可用于排序 | `TreeSet` / `Arrays.sort` 天然可用                    |
-| `toString()`           | 默认等于 `name()`             | 可以重写，用于展示中文名                              |
+| 方法                 | 作用                                                            |
+| -------------------- | --------------------------------------------------------------- |
+| values()             | 返回全部常量的数组，顺序与声明一致                              |
+| valueOf(String name) | 按名字取常量，名字不存在或大小写不符抛 IllegalArgumentException |
+| name()               | 返回常量名                                                      |
+| ordinal()            | 返回序号（从 0 开始），只适合内部排序，别存库                   |
+| toString()           | 默认等于 name()，可重写用于展示                                 |
 
 ### 2. switch 与遍历
 
-`case` 里**只能写常量名，不能写全限定名** `Season.SPRING`。
+case 里只能写常量名，不能写全限定名 Season.SPRING。
 
 ::: code-group
 ```java [switch 判断]
@@ -483,16 +522,17 @@ public static Season parse(String name) {
 ```
 :::
 
+valueOf 遇到 null 或非法名字直接抛异常，接收前端参数时要自己容错：遍历 values() 用 equalsIgnoreCase 比较，找不到返回默认值。
+
 ### 3. 枚举是特殊的类
 
-枚举可以像普通类一样拥有字段、构造器和方法，只是实例被限定为声明的那几个。
+可以有字段、构造器和方法，实例仍被限定为声明的那几个。
 
 ```java
 public enum Season {
   SPRING("春天", 1, 3),
   SUMMER("夏天", 4, 6),
-  AUTUMN("秋天", 7, 9),
-  WINTER("冬天", 10, 12);          // 有成员，结尾必须是分号
+  WINTER("冬天", 11, 12);  // 有成员，结尾必须是分号
 
   private final String label;
   private final int startMonth;
@@ -515,14 +555,12 @@ public enum Season {
   @Override
   public String toString() { return label; }
 }
+
+Season.SPRING.getLabel();   // 春天
+Season.SUMMER.contains(8);  // false
 ```
 
-```java
-System.out.println(Season.SPRING.getLabel());      // 春天
-System.out.println(Season.SUMMER.contains(8));     // false
-```
-
-**实现接口 + 每个常量不同行为**：枚举整体实现接口，各常量再覆盖具体逻辑，比 `switch` 分发更清晰。
+枚举也能实现接口，让各常量自己覆盖行为，比 switch 分发清晰（写法与匿名内部类类似）。
 
 ```java
 public interface Operation {
@@ -543,34 +581,16 @@ public enum Op implements Operation {
 System.out.println(Op.ADD.apply(3, 5));  // 8
 ```
 
-### 4. 常见坑与规范
+### 4. 常见坑
 
 ::: warning ⚠️ 四个高频坑
-1. **`values()` 每次调用都返回新数组**（是复制，不是同一个引用），别在循环条件里反复调：`for (int i = 0; i < Season.values().length; i++)` 每次都在拷贝，先存成局部变量。
-2. **`ordinal()` 不要持久化**。一旦有人在中间插入一个常量，历史数据的序号全部错位。存库请存 `name()`，JPA 里写 `@Enumerated(EnumType.STRING)`。
-3. **`valueOf()` 对 null 和非法名字都抛异常**，接收外部参数时要自己包一层容错（见上面的 `parse`）。
-4. **枚举不能被继承**（不能 `extends`），常量实例在类加载时一次性创建，天生单例、线程安全；所以不要在枚举里放非 `final` 的可变状态。
+1. **values() 每次调用都返回新数组**（是复制，不是同一个引用），别在循环条件里反复调，先存成局部变量。
+2. **ordinal() 不要持久化**，中间插入一个常量就会让历史数据全部错位。存库存 name()，JPA 用 @Enumerated(EnumType.STRING)。
+3. **valueOf() 对 null 和非法名字都抛异常**，外部传入的参数要包一层容错。
+4. **枚举不能被继承**（不能 extends），常量在类加载时一次性创建，所以别在枚举里放非 final 的可变状态。
 :::
 
-**工程约定：**
-
-- 常量名全大写、下划线分隔：`WAIT_PAY`、`IN_PROGRESS`；不要 `WaitPay`。
-- 用来替换"魔法值"，尤其是状态机：订单状态、审核状态、消息类型。
-- 需要大量按键查找时配合 `EnumMap`（比 `HashMap` 更省内存、迭代有序），去重集合用 `EnumSet`。
-- 用枚举实现单例天然防反射、防反序列化破坏——这就是《Effective Java》推荐的单例写法之一。
-- **值会变、需要运营随时调整的字典（如商品分类、地区）不要用枚举**，那属于配置或数据库字典表，改一次要发版。
-
-```java
-// 用枚举实现单例：简单、线程安全、防反射攻击
-public enum Singleton {
-  INSTANCE;
-
-  public void doSomething() {
-    System.out.println("业务逻辑");
-  }
-}
-// 调用：Singleton.INSTANCE.doSomething();
-```
+常量名全大写、下划线分隔（WAIT_PAY），用来替换状态类的魔法值；按键查找配 EnumMap、去重配 EnumSet 更省内存；值会变、要运营随时调整的字典（商品分类、地区）不要用枚举，改一次就要发版。
 
 ## 小结
 

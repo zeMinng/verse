@@ -12,7 +12,12 @@ const Java: SidebarItem = {
         { text: '泛型和比较器', link: '/base/generics' },
       ],
     },
-    // { text: '二叉树', link: '/treeSet' },
+    {
+      text: '集合框架',
+      collapsed: false,
+      items: [{ text: '集合总览', link: '/collection/' }],
+    },
+    { text: '二叉树', link: '/treeSet' },
   ],
 }
 
